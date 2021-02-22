@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Ground
   - Hook
+  - MoveTarget
   layers:
   - Default
   - TransparentFX
@@ -16,9 +17,9 @@ TagManager:
   - Player
   - Ground
   - Obstacle
-  - 
-  - 
-  - 
+  - HookTip
+  - RemotePlayer
+  - LocalPlayer
   - 
   - 
   - 
