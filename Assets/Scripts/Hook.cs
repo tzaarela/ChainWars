@@ -19,23 +19,15 @@ public class Hook : NetworkBehaviour
 	[Range(3, 100)]
 	[SerializeField] private float vertexCount = 12;
 	
-	[SyncVar]
-	private Transform hookTip;
-	[SyncVar]
-	private Transform releasePoint;
-	[SyncVar]
-	private Vector3 direction;
-	[SyncVar]
-	private Transform chain;
+	[SyncVar] private Transform hookTip;
+	[SyncVar] private Transform releasePoint;
+	[SyncVar] private Vector3 direction;
+	[SyncVar] private Transform chain;
+	[SyncVar] private bool canShoot = true;
+	[SyncVar] private bool isExpanding = false;
+	[SyncVar] private bool isPulling = false;
+	[SyncVar] private bool releasePointHit = false;
 
-	[SyncVar]
-	private bool canShoot = true;
-	[SyncVar]
-	private bool isExpanding = false;
-	[SyncVar]
-	private bool isPulling = false;
-	[SyncVar]
-	private bool releasePointHit = false;
 	private void FixedUpdate()
 	{
 		if (!hasAuthority)
@@ -115,6 +107,17 @@ public class Hook : NetworkBehaviour
 		if (!canShoot)
 			return;
 
+		InstantiateHookTipAndChain(playerGuid);
+
+		direction = (targetPosition - hookTip.transform.position).normalized;
+		direction = new Vector3(direction.x, 0, direction.z);
+
+		isExpanding = true;
+		canShoot = false;
+	}
+
+	private void InstantiateHookTipAndChain(Guid playerGuid)
+	{
 		hookTip = Instantiate(hookTipPrefab, transform.position + Vector3.up, Quaternion.identity).transform;
 		hookTip.GetComponent<HookTip>().canGrabHookables = true;
 		hookTip.GetComponent<HookTip>().playerGuid = playerGuid;
@@ -128,14 +131,7 @@ public class Hook : NetworkBehaviour
 
 		releasePoint = Instantiate(releasePointPrefab, transform.position + Vector3.up, Quaternion.identity).transform;
 		releasePoint.position = hookTip.transform.position;
-		
 		NetworkServer.Spawn(releasePoint.gameObject, connectionToClient);
-
-		direction = (targetPosition - hookTip.transform.position).normalized;
-		direction = new Vector3(direction.x, 0, direction.z);
-
-		isExpanding = true;
-		canShoot = false;
 	}
 
 	[ClientRpc]
@@ -156,14 +152,10 @@ public class Hook : NetworkBehaviour
 		hookTip.GetComponent<HookTip>().canGrabHookables = false;
 		chain.GetComponent<LineRenderer>().GetPositions(positions);
 		isPulling = true;
-		RpcChainPull(positions);
-	}
-
-	[ClientRpc]
-	private void RpcChainPull(Vector3[] positions)
-	{
 		StartCoroutine(ChainPull(positions));
 	}
+
+	
 
 	private IEnumerator ChainPull(Vector3[] positions)
 	{
@@ -171,10 +163,16 @@ public class Hook : NetworkBehaviour
 
 		while (isPulling)
 		{
-			if (hookTip == null)
-				break;
+			if (hookTip == null || chain == null)
+				yield return 0;
 
-			hookTip.transform.position = Vector3.MoveTowards(hookTip.transform.position, chain.GetComponent<LineRenderer>().GetPosition(pullIndex), pullSpeed);
+			if (chain.GetComponent<LineRenderer>().positionCount < pullIndex)
+			{
+				pullIndex--;
+				yield return null;
+			}
+			RpcChainPull(pullIndex);
+			
 
 			if(Vector3.Distance(hookTip.transform.position, chain.GetComponent<LineRenderer>().GetPosition(pullIndex)) < 0.01f)
 				pullIndex--;
@@ -183,13 +181,13 @@ public class Hook : NetworkBehaviour
 			if (distance < 2f)
 			{
 				if(hasAuthority)
-					CmdSetReleasePointHit();
+					SetReleasePointHit();
 			}
 
 			if (pullIndex < 0)
 			{
 				if(hasAuthority)
-					CmdChainPullFinished();
+					ChainPullFinished();
 			}
 			yield return null;
 
@@ -198,14 +196,18 @@ public class Hook : NetworkBehaviour
 		yield return 0;
 	}
 
-	[Command]
-	private void CmdSetReleasePointHit()
+	[ClientRpc]
+	private void RpcChainPull(int pullIndex)
+	{
+		hookTip.transform.position = Vector3.MoveTowards(hookTip.transform.position, chain.GetComponent<LineRenderer>().GetPosition(pullIndex), pullSpeed);
+	}
+
+	private void SetReleasePointHit()
 	{
 		releasePointHit = true;
 	}
 
-	[Command]
-	private void CmdChainPullFinished()
+	private void ChainPullFinished()
 	{
 		//hookTip.transform.SetParent(lineRenderer.transform);
 		hookTip.GetComponent<HookTip>().ReleaseGrabbedObject();
