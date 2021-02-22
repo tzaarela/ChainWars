@@ -12,6 +12,7 @@ public class PlayerHandler : NetworkBehaviour
 	public LayerMask localPlayer;
 	public LayerMask remotePlayer;
 
+	[SyncVar]
 	public Guid playerGuid;
 
 	private Camera mainCamera;
@@ -29,12 +30,18 @@ public class PlayerHandler : NetworkBehaviour
 			return;
 		}
 
+		CmdStart();
+
 		moveTarget = new GameObject("moveTarget").transform;
 		GetComponent<Pathfinding.AIDestinationSetter>().target = moveTarget.transform;
-		playerGuid = Guid.NewGuid();
-		GetComponent<Hookable>().guid = playerGuid;
 
 		gameObject.layer = LayerMask.NameToLayer("LocalPlayer");
+	}
+
+	[Command]
+	private void CmdStart()
+	{
+		playerGuid = Guid.NewGuid();
 	}
 
 	public void Update()

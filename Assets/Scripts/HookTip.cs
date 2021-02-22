@@ -6,19 +6,23 @@ using UnityEngine;
 
 public class HookTip : NetworkBehaviour
 {
+	[SyncVar]
 	public bool canGrabHookables;
-	public Action onObjectGrabbed;
-	public Guid guid;
+	public Action<GameObject> onObjectGrabbed;
+	public Action<GameObject> onObjectReleased;
+
+	public Guid playerGuid;
 	
+	[SyncVar]
 	private GameObject grabbedObject;
 
 	public void GrabObject(GameObject gameObject)
 	{
 		if (canGrabHookables)
 		{
-			this.grabbedObject = gameObject;
-			this.grabbedObject.transform.parent = transform;
-			onObjectGrabbed?.Invoke();
+			grabbedObject = gameObject;
+			//this.grabbedObject.transform.parent = transform;
+			onObjectGrabbed?.Invoke(grabbedObject);
 		}
 	}
 
@@ -26,8 +30,7 @@ public class HookTip : NetworkBehaviour
 	{
 		if(grabbedObject != null)
 		{
-			grabbedObject.transform.SetParent(null);
-			grabbedObject = null;
+			onObjectReleased?.Invoke(grabbedObject);
 		}
 	}
 }

@@ -7,22 +7,27 @@ using UnityEngine;
 
 public class Hookable : NetworkBehaviour
 {
-	public Guid guid;
 
-	private void OnCollisionEnter(Collision collision)
+	private void OnTriggerEnter(Collider other)
 	{
-		if(collision.gameObject.CompareTag("Hook"))
+		if (other.gameObject.CompareTag("Hook"))
 		{
+			Debug.Log("Trying to hook!");
+			var hookTip = other.gameObject.GetComponent<HookTip>();
 
-			Debug.Log("trying to hook");
-			var hookTip = collision.gameObject.GetComponent<HookTip>();
+			if(hasAuthority)
+				CmdGrabObject(hookTip);
+		}
+	}
 
+	[Command]
+	private void CmdGrabObject(HookTip hookTip)
+	{
 			//Dont hook yourself
-			if (guid == hookTip.guid)
+			if (GetComponent<PlayerHandler>().playerGuid == hookTip.playerGuid)
 				return;
 
-			if(hookTip.canGrabHookables)
+			if (hookTip.canGrabHookables)
 				hookTip.GrabObject(gameObject);
-		}
 	}
 }
