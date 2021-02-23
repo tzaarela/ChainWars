@@ -9,7 +9,7 @@ public class Hook : NetworkBehaviour
 {
 	[SerializeField] private GameObject hookTipPrefab;
 	[SerializeField] private GameObject chainPrefab;
-	[SerializeField] private GameObject releasePointPrefab;
+	[SerializeField] private GameObject startPointPrefab;
 
 	[Header("Hook Settings")]
 	[SerializeField] private float travelDistance = 30f;
@@ -18,17 +18,17 @@ public class Hook : NetworkBehaviour
 	[SerializeField] private float pullSpeed = 0.5f;
 	[Range(3, 100)]
 	[SerializeField] private float vertexCount = 12;
-	
+	[SerializeField] private float releaseObjectDistance = 2f;
+
 	[SyncVar] private Transform hookTip;
-	[SyncVar] private Transform releasePoint;
+	[SyncVar] private Transform startPoint;
 	[SyncVar] private Vector3 direction;
 	[SyncVar] private Transform chain;
 	[SyncVar] private bool canShoot = true;
 	[SyncVar] private bool isExpanding = false;
 	[SyncVar] private bool isPulling = false;
-	[SyncVar] private bool releasePointHit = false;
-
-	private NetworkConnection grabbedObjectConnection;
+	[SyncVar] private bool startPointHit = false;
+	[SyncVar] private bool isGrabbing = false;
 
 	private void FixedUpdate()
 	{
@@ -49,7 +49,7 @@ public class Hook : NetworkBehaviour
 		if (isExpanding)
 		{
 			RpcMoveHookTip();
-			if ((releasePoint.transform.position - hookTip.transform.position).magnitude > travelDistance)
+			if ((startPoint.transform.position - hookTip.transform.position).magnitude > travelDistance)
 			{
 				PullChain(null);
 			}
@@ -59,18 +59,18 @@ public class Hook : NetworkBehaviour
 	[ClientRpc]
 	private void RpcDrawChain()
 	{
-		if (hookTip == null || chain == null || releasePoint == null)
+		if (hookTip == null || chain == null || startPoint == null)
 			return;
 		
 		var pointList = new List<Vector3>();
 
 
-		if (!releasePointHit)
+		if (!startPointHit)
 		{
 			for (float ratio = 0; ratio <= 1; ratio += 1 / vertexCount)
 			{
-				Vector3 tangent1 = Vector3.Lerp(transform.position + Vector3.up, releasePoint.position, ratio);
-				Vector3 tangent2 = Vector3.Lerp(releasePoint.position, hookTip.transform.position, ratio);
+				Vector3 tangent1 = Vector3.Lerp(transform.position + Vector3.up, startPoint.position, ratio);
+				Vector3 tangent2 = Vector3.Lerp(startPoint.position, hookTip.transform.position, ratio);
 				Vector3 curve = Vector3.Lerp(tangent1, tangent2, ratio);
 
 				pointList.Add(curve);
@@ -131,9 +131,9 @@ public class Hook : NetworkBehaviour
 		chain.gameObject.GetComponent<LineRenderer>().useWorldSpace = true;
 		NetworkServer.Spawn(chain.gameObject, connectionToClient);
 
-		releasePoint = Instantiate(releasePointPrefab, transform.position + Vector3.up, Quaternion.identity).transform;
-		releasePoint.position = hookTip.transform.position;
-		NetworkServer.Spawn(releasePoint.gameObject, connectionToClient);
+		startPoint = Instantiate(startPointPrefab, transform.position + Vector3.up, Quaternion.identity).transform;
+		startPoint.position = hookTip.transform.position;
+		NetworkServer.Spawn(startPoint.gameObject, connectionToClient);
 	}
 
 	[ClientRpc]
@@ -157,6 +157,12 @@ public class Hook : NetworkBehaviour
 	[Command]
 	private void CmdPullChain(GameObject grabbedObject)
 	{
+		if (grabbedObject != null)
+		{
+			grabbedObject.GetComponent<Pathfinding.AIPath>().canSearch = false;
+			isGrabbing = true;
+		}
+
 		PullChain(grabbedObject);
 	}
 
@@ -169,8 +175,6 @@ public class Hook : NetworkBehaviour
 		isPulling = true;
 		StartCoroutine(ChainPull(positions, grabbedObject));
 	}
-
-	
 
 	private IEnumerator ChainPull(Vector3[] positions, GameObject grabbedObject)
 	{
@@ -187,13 +191,21 @@ public class Hook : NetworkBehaviour
 				yield return null;
 			}
 
+			if (grabbedObject != null && Vector3.Distance(grabbedObject.transform.position, transform.position) < releaseObjectDistance)
+			{
+				Debug.Log("Releasing");
+				isGrabbing = false;
+				grabbedObject.GetComponent<Pathfinding.AIPath>().canSearch = true;
+				grabbedObject = null;
+			}
+
 			RpcChainPull(pullIndex, grabbedObject);
 			
 
 			if(Vector3.Distance(hookTip.transform.position, chain.GetComponent<LineRenderer>().GetPosition(pullIndex)) < 0.01f)
 				pullIndex--;
 
-			var distance = Vector3.Distance(hookTip.transform.position, releasePoint.position);
+			var distance = Vector3.Distance(hookTip.transform.position, startPoint.position);
 			if (distance < 2f)
 			{
 				SetReleasePointHit();
@@ -215,7 +227,7 @@ public class Hook : NetworkBehaviour
 	{
 		hookTip.transform.position = Vector3.MoveTowards(hookTip.transform.position, chain.GetComponent<LineRenderer>().GetPosition(pullIndex), pullSpeed);
 
-		if(grabbedObject != null)
+		if(grabbedObject != null && isGrabbing)
 		{
 			grabbedObject.transform.position = hookTip.transform.position;
 			grabbedObject.transform.position = new Vector3(grabbedObject.transform.position.x, 0, grabbedObject.transform.position.z);
@@ -224,7 +236,7 @@ public class Hook : NetworkBehaviour
 
 	private void SetReleasePointHit()
 	{
-		releasePointHit = true;
+		startPointHit = true;
 	}
 
 	private void ChainPullFinished()
@@ -233,9 +245,9 @@ public class Hook : NetworkBehaviour
 		hookTip.GetComponent<HookTip>().ReleaseGrabbedObject();
 		Destroy(hookTip.gameObject);
 		Destroy(chain.gameObject);
-		Destroy(releasePoint.gameObject);
+		Destroy(startPoint.gameObject);
 		isPulling = false;
 		canShoot = true;
-		releasePointHit = false;
+		startPointHit = false;
 	}
 }

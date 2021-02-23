@@ -6,7 +6,6 @@ using Mirror;
 
 public class PlayerHandler : NetworkBehaviour
 {
-    public GameObject hook;
 	private Transform moveTarget;
 	public LayerMask groundLayer;
 	public LayerMask localPlayer;

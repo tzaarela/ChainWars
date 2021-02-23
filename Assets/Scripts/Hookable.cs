@@ -12,11 +12,13 @@ public class Hookable : NetworkBehaviour
 	{
 		if (other.gameObject.CompareTag("Hook"))
 		{
-			Debug.Log("Trying to hook!");
 			var hookTip = other.gameObject.GetComponent<HookTip>();
 
 			if(hasAuthority)
+			{
+				Debug.Log("Grabbing object");
 				CmdGrabObject(hookTip);
+			}
 		}
 	}
 
