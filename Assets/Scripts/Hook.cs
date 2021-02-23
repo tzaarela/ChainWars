@@ -225,6 +225,12 @@ public class Hook : NetworkBehaviour
 	[ClientRpc]
 	private void RpcChainPull(int pullIndex, GameObject grabbedObject)
 	{
+		if (hookTip == null)
+			return;
+
+		if (chain.GetComponent<LineRenderer>().positionCount <= pullIndex)
+			return;
+
 		hookTip.transform.position = Vector3.MoveTowards(hookTip.transform.position, chain.GetComponent<LineRenderer>().GetPosition(pullIndex), pullSpeed);
 
 		if(grabbedObject != null && isGrabbing)
@@ -243,9 +249,9 @@ public class Hook : NetworkBehaviour
 	{
 		//hookTip.transform.SetParent(lineRenderer.transform);
 		hookTip.GetComponent<HookTip>().ReleaseGrabbedObject();
-		Destroy(hookTip.gameObject);
-		Destroy(chain.gameObject);
-		Destroy(startPoint.gameObject);
+		NetworkServer.Destroy(hookTip.gameObject);
+		NetworkServer.Destroy(chain.gameObject);
+		NetworkServer.Destroy(startPoint.gameObject);
 		isPulling = false;
 		canShoot = true;
 		startPointHit = false;

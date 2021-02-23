@@ -16,7 +16,6 @@ public class Hookable : NetworkBehaviour
 
 			if(hasAuthority)
 			{
-				Debug.Log("Grabbing object");
 				CmdGrabObject(hookTip);
 			}
 		}
@@ -25,11 +24,15 @@ public class Hookable : NetworkBehaviour
 	[Command]
 	private void CmdGrabObject(HookTip hookTip)
 	{
+			if (hookTip == null)
+				return;
+
 			//Dont hook yourself
 			if (GetComponent<PlayerHandler>().playerGuid == hookTip.playerGuid)
 				return;
 
 			if (hookTip.canGrabHookables)
+				Debug.Log("Grabbing object");
 				hookTip.GrabObject(gameObject);
 	}
 }
