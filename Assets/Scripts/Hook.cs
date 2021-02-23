@@ -28,6 +28,8 @@ public class Hook : NetworkBehaviour
 	[SyncVar] private bool isPulling = false;
 	[SyncVar] private bool releasePointHit = false;
 
+	private NetworkConnection grabbedObjectConnection;
+
 	private void FixedUpdate()
 	{
 		if (!hasAuthority)
@@ -49,7 +51,7 @@ public class Hook : NetworkBehaviour
 			RpcMoveHookTip();
 			if ((releasePoint.transform.position - hookTip.transform.position).magnitude > travelDistance)
 			{
-				PullChain();
+				PullChain(null);
 			}
 		}
 	}
@@ -137,27 +139,40 @@ public class Hook : NetworkBehaviour
 	[ClientRpc]
 	private void RpcHandleOnGrabObject(GameObject grabbedObject)
 	{
-		grabbedObject.transform.SetParent(hookTip);
+		if (hasAuthority)
+		{
+			//grabbedObjectConnection = grabbedObject.GetComponent<NetworkIdentity>().connectionToClient;
+			//grabbedObject.transform.SetParent(hookTip);
+			CmdPullChain(grabbedObject);
+		}
 	}
 
+	[ClientRpc]
 	private void RpcHandleOnObjectReleased(GameObject releasedObject)
 	{
-		releasedObject.transform.SetParent(null, true);
+		//releasedObject.transform.SetParent(null, true);
+		//releasedObject.GetComponent<NetworkIdentity>().AssignClientAuthority(grabbedObjectConnection);
 	}
 
-	private void PullChain()
+	[Command]
+	private void CmdPullChain(GameObject grabbedObject)
+	{
+		PullChain(grabbedObject);
+	}
+
+	private void PullChain(GameObject grabbedObject)
 	{
 		isExpanding = false;
 		var positions = new Vector3[chain.GetComponent<LineRenderer>().positionCount];
 		hookTip.GetComponent<HookTip>().canGrabHookables = false;
 		chain.GetComponent<LineRenderer>().GetPositions(positions);
 		isPulling = true;
-		StartCoroutine(ChainPull(positions));
+		StartCoroutine(ChainPull(positions, grabbedObject));
 	}
 
 	
 
-	private IEnumerator ChainPull(Vector3[] positions)
+	private IEnumerator ChainPull(Vector3[] positions, GameObject grabbedObject)
 	{
 		int pullIndex = positions.Length - 1;
 
@@ -171,7 +186,8 @@ public class Hook : NetworkBehaviour
 				pullIndex--;
 				yield return null;
 			}
-			RpcChainPull(pullIndex);
+
+			RpcChainPull(pullIndex, grabbedObject);
 			
 
 			if(Vector3.Distance(hookTip.transform.position, chain.GetComponent<LineRenderer>().GetPosition(pullIndex)) < 0.01f)
@@ -180,14 +196,12 @@ public class Hook : NetworkBehaviour
 			var distance = Vector3.Distance(hookTip.transform.position, releasePoint.position);
 			if (distance < 2f)
 			{
-				if(hasAuthority)
-					SetReleasePointHit();
+				SetReleasePointHit();
 			}
 
 			if (pullIndex < 0)
 			{
-				if(hasAuthority)
-					ChainPullFinished();
+				ChainPullFinished();
 			}
 			yield return null;
 
@@ -197,9 +211,15 @@ public class Hook : NetworkBehaviour
 	}
 
 	[ClientRpc]
-	private void RpcChainPull(int pullIndex)
+	private void RpcChainPull(int pullIndex, GameObject grabbedObject)
 	{
 		hookTip.transform.position = Vector3.MoveTowards(hookTip.transform.position, chain.GetComponent<LineRenderer>().GetPosition(pullIndex), pullSpeed);
+
+		if(grabbedObject != null)
+		{
+			grabbedObject.transform.position = hookTip.transform.position;
+			grabbedObject.transform.position = new Vector3(grabbedObject.transform.position.x, 0, grabbedObject.transform.position.z);
+		}
 	}
 
 	private void SetReleasePointHit()
