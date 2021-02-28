@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "697494822350",
+    "firebase_url": "https://chainwars-e32ea-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "chainwars-e32ea",
+    "storage_bucket": "chainwars-e32ea.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:697494822350:android:e703b0b57f33ed12809f9f",
+        "android_client_info": {
+          "package_name": "com.DefaultCompany.ChainWars"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "697494822350-tnkq3e2b2gecpsdsafvmgs977ogusbe4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCDC9pRoN3AxdNrWaDNjygJzQ38DI196jk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "697494822350-tnkq3e2b2gecpsdsafvmgs977ogusbe4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
