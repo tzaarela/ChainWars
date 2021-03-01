@@ -41,7 +41,8 @@ namespace Assets.Scripts
                     app = FirebaseApp.DefaultInstance;
                     auth = FirebaseAuth.DefaultInstance;
                     dbContext = FirebaseDatabase.DefaultInstance;
-                    onFirebaseInitialized();
+
+                    Dispatcher.RunOnMainThread(onFirebaseInitialized);
                 }
                 else
                 {
@@ -53,8 +54,13 @@ namespace Assets.Scripts
 
         }
 
-        public void RegisterUser(string email, string password)
+        public void RegisterUser(string username, string email, string password, string passwordVerify)
         {
+            if(!password.Equals(passwordVerify))
+			{
+                Debug.Log("Password verification not matched");
+                return;
+			}
 
             auth.CreateUserWithEmailAndPasswordAsync(email, password).ContinueWith(task =>
             {
@@ -75,7 +81,7 @@ namespace Assets.Scripts
 
                 var lobbyPlayer = new LobbyPlayer();
                 lobbyPlayer.email = newUser.Email;
-                lobbyPlayer.username = "tzaa";
+                lobbyPlayer.username = username;
 
                 string jsonValue = JsonUtility.ToJson(lobbyPlayer);
 

@@ -7,9 +7,22 @@ using System;
 
 public class LoginController : MonoBehaviour
 {
-	public TextMeshProUGUI emailText;
-	public TextMeshProUGUI passwordText;
-	public TextMeshProUGUI statusText;
+	[Header("Login")]
+	[SerializeField] private TMP_InputField emailInput;
+	[SerializeField] private TMP_InputField passwordInput;
+	[SerializeField] private TextMeshProUGUI statusText;
+
+	[Header("Register")]
+	[SerializeField] private TMP_InputField emailRegisterInput;
+	[SerializeField] private TMP_InputField usernameRegisterInput;
+	[SerializeField] private TMP_InputField passwordRegisterInput;
+	[SerializeField] private TMP_InputField passwordVerifyRegisterInput;
+
+	[Header("Windows")]
+	[SerializeField] private GameObject loginWindow;
+	[SerializeField] private GameObject registerWindow;
+
+
 
 	private void Start()
 	{
@@ -20,22 +33,44 @@ public class LoginController : MonoBehaviour
 
 	public void Login()
 	{
-		Debug.Log("Trying to login with mail: " + emailText.text);
-		GameController.database.SignInUser(emailText.text, passwordText.text);
+		Debug.Log("Trying to login with mail: " + emailInput.text);
+		GameController.database.SignInUser(emailInput.textComponent.text, passwordInput.textComponent.text);
 	}
 
+	public void DebugLogion()
+	{
+		emailInput.text = "test2@test.com";
+		passwordInput.text = "123456";
+	}
 	private void HandleOnUserSignedIn()
 	{
 		SceneController.Instance.ChangeScene(SceneType.LobbyScene);
 	}
 
+	public void ActivateRegisterWindow()
+	{
+		registerWindow.SetActive(true);
+		loginWindow.SetActive(false);
+	}
+
+	public void ActivateLoginWindow()
+	{
+		loginWindow.SetActive(true);
+		registerWindow.SetActive(false);
+	}
+
 	public void Register()
 	{
-		Debug.Log("Trying to register user mail: " + emailText.text);
-		GameController.database.RegisterUser(emailText.text, passwordText.text);
+		Debug.Log("Trying to register user mail: " + emailRegisterInput.text);
+		GameController.database.RegisterUser(
+			usernameRegisterInput.text, 
+			emailRegisterInput.text, 
+			passwordRegisterInput.text, 
+			passwordVerifyRegisterInput.text);
 	}
 	private void HandleOnUserRegistered()
 	{
+		SceneController.Instance.ChangeScene(SceneType.LobbyScene);
 		statusText.text = "User registered, please sign in!";
 	}
 }

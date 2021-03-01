@@ -18,6 +18,8 @@ public class LobbyController : MonoBehaviour
     public bool debugStart;
 
     private List<GameObject> lobbyGameObjects;
+    private List<Lobby> lobbies;
+    private LobbyPlayer localLobbyPlayer;
 
     void Start()
     {
@@ -25,6 +27,10 @@ public class LobbyController : MonoBehaviour
 
         if (!debugStart)
         signedInText.text = GameController.database.user.Email;
+
+        var dbUser = GameController.database.user;
+        localLobbyPlayer = new LobbyPlayer();
+        localLobbyPlayer.email = dbUser.Email;
 
         GameController.database.dbContext.GetReference("Lobbies").ChildAdded += HandleOnLobbyCreated;
         GameController.database.dbContext.GetReference("Lobbies").ChildRemoved += HandleOnLobbyRemoved;
@@ -50,26 +56,31 @@ public class LobbyController : MonoBehaviour
     public void RefreshLobbies()
 	{
         GameController.database.onLobbiesRefreshed += HandleOnLobbiesRefreshed;
-        GameController.database.RefreshLobbies();
+        lobbies = GameController.database.RefreshLobbies();
     }
 
     private void HandleOnLobbiesRefreshed(List<Lobby> lobbies)
 	{
         Dispatcher.RunOnMainThread(() => 
         {
-		    foreach (var item in lobbyGameObjects)
-		    {
-                Destroy(item);
-		    }
-
-		    foreach (var lobby in lobbies)
-		    {
-                var lobbyGameObject = Instantiate(lobbyPrefab, lobbiesVerticalGroup);
-                lobbyGameObject.GetComponent<LobbyPanel>().lobbyName.text = lobby.name;
-                lobbyGameObjects.Add(lobbyGameObject);
-		    }
+            CreateLobbiesGameObjects();
         });
 	}
+
+    private void CreateLobbiesGameObjects()
+	{
+        foreach (var item in lobbyGameObjects)
+        {
+            Destroy(item);
+        }
+
+        foreach (var lobby in lobbies)
+        {
+            var lobbyGameObject = Instantiate(lobbyPrefab, lobbiesVerticalGroup);
+            lobbyGameObject.GetComponent<LobbyPanel>().lobbyName.text = lobby.name;
+            lobbyGameObjects.Add(lobbyGameObject);
+        }
+    }
 
 	public void JoinLobby()
 	{

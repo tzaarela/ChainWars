@@ -13,13 +13,18 @@ public class GameController : MonoBehaviour
 
     private void Awake()
     {
-
 		DontDestroyOnLoad(gameObject);
     }
 
 	private void Start()
 	{
 		database = new Database();
+		//Invoke to let the rest init();
+		Invoke("InitializeFirebase", 0.5f);
+	}
+
+	private void InitializeFirebase()
+	{
 		database.InitializeFirebase();
 	}
 }

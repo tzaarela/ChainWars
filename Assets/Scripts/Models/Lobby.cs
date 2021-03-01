@@ -12,11 +12,21 @@ namespace Assets.Scripts.Models
 		public Guid guid;
 		public string name;
 		public int playerCount = 0;
+		public int playerMaxCount = 8;
+
+		public LobbyPlayer hostPlayer;
+		public List<LobbyPlayer> lobbyPlayers;
+		public List<LobbyPlayer> redPlayers;
+		public List<LobbyPlayer> bluePlayers;
 
 		public Lobby(string name)
 		{
 			this.name = name;
 			guid = Guid.NewGuid();
+
+			lobbyPlayers = new List<LobbyPlayer>();
+			redPlayers = new List<LobbyPlayer>();
+			bluePlayers = new List<LobbyPlayer>();
 		}
 	}
 }
