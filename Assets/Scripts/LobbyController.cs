@@ -5,6 +5,8 @@ using TMPro;
 using Assets.Scripts;
 using Assets.Scripts.Models;
 using System;
+using Firebase.Database;
+using DG.Tweening;
 
 public class LobbyController : MonoBehaviour
 {
@@ -24,10 +26,23 @@ public class LobbyController : MonoBehaviour
         if (!debugStart)
         signedInText.text = GameController.database.user.Email;
 
+        GameController.database.dbContext.GetReference("Lobbies").ChildAdded += HandleOnLobbyCreated;
+        GameController.database.dbContext.GetReference("Lobbies").ChildRemoved += HandleOnLobbyRemoved;
+
         RefreshLobbies();
     }
 
-    public void CreateLobby()
+	private void HandleOnLobbyRemoved(object sender, ChildChangedEventArgs e)
+	{
+        RefreshLobbies();
+    }
+
+    private void HandleOnLobbyCreated(object sender, ChildChangedEventArgs e)
+	{
+        RefreshLobbies();
+	}
+
+	public void CreateLobby()
 	{
         GameController.database.onLobbyCreated += RefreshLobbies;
         GameController.database.CreateLobby(createLobbyNameText.text);
@@ -36,9 +51,9 @@ public class LobbyController : MonoBehaviour
 	{
         GameController.database.onLobbiesRefreshed += HandleOnLobbiesRefreshed;
         GameController.database.RefreshLobbies();
-	}
+    }
 
-	private void HandleOnLobbiesRefreshed(List<Lobby> lobbies)
+    private void HandleOnLobbiesRefreshed(List<Lobby> lobbies)
 	{
         Dispatcher.RunOnMainThread(() => 
         {

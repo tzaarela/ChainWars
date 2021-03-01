@@ -11,33 +11,33 @@ using UnityEngine;
 
 namespace Assets.Scripts
 {
-	public class Database
-	{
+    public class Database
+    {
         public FirebaseApp app;
         public FirebaseAuth auth;
         public FirebaseUser user;
         public FirebaseDatabase dbContext;
 
-        public Action onFirebaseInitialized;
         public Action onUserRegistered;
         public Action onUserSignedIn;
         public Action onSignInFailed;
         public Action onRegisterFailed;
         public Action onLobbyCreated;
         public Action<List<Lobby>> onLobbiesRefreshed;
+        public Action onFirebaseInitialized;
 
         public Database()
-		{
-		}
+        {
+        }
 
         public void InitializeFirebase()
         {
-            FirebaseApp.CheckAndFixDependenciesAsync().ContinueWith(task => 
+            FirebaseApp.CheckAndFixDependenciesAsync().ContinueWith(task =>
             {
                 var dependencyStatus = task.Result;
                 if (dependencyStatus == Firebase.DependencyStatus.Available)
                 {
-                    
+
                     app = FirebaseApp.DefaultInstance;
                     auth = FirebaseAuth.DefaultInstance;
                     dbContext = FirebaseDatabase.DefaultInstance;
@@ -54,9 +54,9 @@ namespace Assets.Scripts
         }
 
         public void RegisterUser(string email, string password)
-		{
-            
-            auth.CreateUserWithEmailAndPasswordAsync(email, password).ContinueWith(task => 
+        {
+
+            auth.CreateUserWithEmailAndPasswordAsync(email, password).ContinueWith(task =>
             {
                 if (task.IsCanceled)
                 {
@@ -82,15 +82,15 @@ namespace Assets.Scripts
                 dbContext.RootReference.Child("players").Child(newUser.UserId).SetRawJsonValueAsync(jsonValue).ContinueWith(task =>
                 {
                     Debug.Log("Created db reference to user");
-                    
+
                     Dispatcher.RunOnMainThread(onUserRegistered);
                 });
             });
         }
 
         public void SignInUser(string email, string password)
-		{
-            auth.SignInWithEmailAndPasswordAsync(email, password).ContinueWith(task => 
+        {
+            auth.SignInWithEmailAndPasswordAsync(email, password).ContinueWith(task =>
             {
                 if (task.IsCanceled)
                 {
@@ -111,8 +111,8 @@ namespace Assets.Scripts
             });
         }
 
-        public void CreateLobby(string name)
-		{
+        public Lobby CreateLobby(string name)
+        {
             Lobby lobby = new Lobby(name);
             string jsonValue = JsonUtility.ToJson(lobby);
             dbContext.RootReference.Child("Lobbies").Child(lobby.guid.ToString()).SetRawJsonValueAsync(jsonValue).ContinueWith(task =>
@@ -121,33 +121,41 @@ namespace Assets.Scripts
 
                 onLobbyCreated();
             });
+
+            return lobby;
         }
 
-        public void RefreshLobbies()
+        public void RemoveLobby(Guid guid)
 		{
+
+		}
+
+        public List<Lobby> RefreshLobbies()
+        {
+            var lobbies = new List<Lobby>();
+
             dbContext.GetReference("Lobbies").GetValueAsync().ContinueWith(task =>
-	        {
-		        if (task.IsFaulted)
-		        {
+            {
+                if (task.IsFaulted)
+                {
                     Debug.LogError(task.Exception);// Handle the error...
-		        }
-		        else if (task.IsCompleted)
-		        {
-			        DataSnapshot snapshot = task.Result;
-
+                }
+                else if (task.IsCompleted)
+                {
                     Debug.Log("refreshing lobby from database");
+                    DataSnapshot snapshot = task.Result;
 
-                    var lobbies = new List<Lobby>();
 
-					foreach (var lobby in snapshot.Children)
-					{
+                    foreach (var lobby in snapshot.Children)
+                    {
                         var rawJson = lobby.GetRawJsonValue();
                         lobbies.Add(JsonUtility.FromJson<Lobby>(rawJson));
-					}
+                    }
 
                     onLobbiesRefreshed(lobbies);// Do something with snapshot...
-		        }
-	        });
-		}
-	}
+                }
+            });
+            return lobbies;
+        }
+    }
 }

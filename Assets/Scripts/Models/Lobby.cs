@@ -11,7 +11,7 @@ namespace Assets.Scripts.Models
 	{
 		public Guid guid;
 		public string name;
-		public int playerCount = 1;
+		public int playerCount = 0;
 
 		public Lobby(string name)
 		{

@@ -8,7 +8,7 @@ namespace Assets.Scripts
 {
 	public enum SceneType
 	{
-		LoadingScene,
+		//LoadingScene,
 		LoginScene,
 		LobbyScene,
 		GameScene

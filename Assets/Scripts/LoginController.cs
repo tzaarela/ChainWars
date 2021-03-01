@@ -15,6 +15,7 @@ public class LoginController : MonoBehaviour
 	{
 		GameController.database.onUserSignedIn += HandleOnUserSignedIn;
 		GameController.database.onUserRegistered += HandleOnUserRegistered;
+		GameController.database.onFirebaseInitialized += () => { statusText.text = "connected"; };
 	}
 
 	public void Login()
