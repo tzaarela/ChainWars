@@ -86,8 +86,9 @@ GameObject:
   - component: {fileID: 2758245575375536083}
   - component: {fileID: 2773427045422545235}
   - component: {fileID: 38792787826050480}
+  - component: {fileID: 4753829137425695516}
   m_Layer: 5
-  m_Name: PanelLobbyPlayer
+  m_Name: LobbyPlayerPanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -152,6 +153,19 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &4753829137425695516
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6506266534203716668}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce6a89ee084d534409c3325f3f24816e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  username: {fileID: 8611929833718714721}
 --- !u!1 &7040601028518379391
 GameObject:
   m_ObjectHideFlags: 0
@@ -178,7 +192,7 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7040601028518379391}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -841.16504}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 2758245575375536083}

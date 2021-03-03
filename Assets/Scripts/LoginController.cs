@@ -34,7 +34,7 @@ public class LoginController : MonoBehaviour
 	public void Login()
 	{
 		Debug.Log("Trying to login with mail: " + emailInput.text);
-		GameController.database.SignInUser(emailInput.textComponent.text, passwordInput.textComponent.text);
+		GameController.database.SignInUser(emailInput.text, passwordInput.text);
 	}
 
 	public void DebugLogion()

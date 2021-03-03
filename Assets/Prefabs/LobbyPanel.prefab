@@ -386,7 +386,7 @@ GameObject:
   - component: {fileID: 1772778663780299500}
   - component: {fileID: 1347233067474879610}
   m_Layer: 5
-  m_Name: PanelLobby
+  m_Name: LobbyPanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -439,6 +439,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   lobbyName: {fileID: 2638607335445342449}
+  isSelected: 0
+  highlightColor: {r: 0.2924528, g: 0.2924528, b: 0.2924528, a: 0.7176471}
+  selectedColor: {r: 1, g: 0.9799403, b: 0.6933962, a: 0.6392157}
+  background: {fileID: 3837688410085522026}
 --- !u!1 &7378053245885223442
 GameObject:
   m_ObjectHideFlags: 0

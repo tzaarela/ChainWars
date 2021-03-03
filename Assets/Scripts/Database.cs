@@ -41,7 +41,7 @@ namespace Assets.Scripts
                     app = FirebaseApp.DefaultInstance;
                     auth = FirebaseAuth.DefaultInstance;
                     dbContext = FirebaseDatabase.DefaultInstance;
-
+                    Debug.Log("firebase initialized");
                     Dispatcher.RunOnMainThread(onFirebaseInitialized);
                 }
                 else
@@ -79,9 +79,12 @@ namespace Assets.Scripts
                 Debug.LogFormat("Firebase user created successfully: {0} ({1})",
                     newUser.DisplayName, newUser.UserId);
 
+                user = newUser;
+
                 var lobbyPlayer = new LobbyPlayer();
                 lobbyPlayer.email = newUser.Email;
                 lobbyPlayer.username = username;
+                lobbyPlayer.playerId = Guid.NewGuid();
 
                 string jsonValue = JsonUtility.ToJson(lobbyPlayer);
 
@@ -121,7 +124,7 @@ namespace Assets.Scripts
         {
             Lobby lobby = new Lobby(name);
             string jsonValue = JsonUtility.ToJson(lobby);
-            dbContext.RootReference.Child("Lobbies").Child(lobby.guid.ToString()).SetRawJsonValueAsync(jsonValue).ContinueWith(task =>
+            dbContext.RootReference.Child("lobbies").Child(lobby.lobbyId.ToString()).SetRawJsonValueAsync(jsonValue).ContinueWith(task =>
             {
                 Debug.Log("Created new lobby");
 
@@ -140,7 +143,7 @@ namespace Assets.Scripts
         {
             var lobbies = new List<Lobby>();
 
-            dbContext.GetReference("Lobbies").GetValueAsync().ContinueWith(task =>
+            dbContext.GetReference("lobbies").GetValueAsync().ContinueWith(task =>
             {
                 if (task.IsFaulted)
                 {

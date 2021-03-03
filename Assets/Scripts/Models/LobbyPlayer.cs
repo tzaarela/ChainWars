@@ -9,6 +9,7 @@ namespace Assets.Scripts.Models
 	[Serializable]
 	public class LobbyPlayer
 	{
+		public Guid playerId;
 		public string username;
 		public string email;
 		public int wins;

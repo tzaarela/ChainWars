@@ -27,4 +27,10 @@ public class GameController : MonoBehaviour
 	{
 		database.InitializeFirebase();
 	}
+
+	void OnApplicationQuit()
+	{
+		Debug.Log("Signing out user");
+		database.auth.SignOut();
+	}
 }
