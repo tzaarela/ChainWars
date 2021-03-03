@@ -8,6 +8,7 @@ using System;
 using Firebase.Database;
 using DG.Tweening;
 using System.Linq;
+using Newtonsoft.Json;
 
 public class LobbyController : MonoBehaviour
 {
@@ -48,7 +49,7 @@ public class LobbyController : MonoBehaviour
 
         GameController.database.dbContext.GetReference("players").Child(dbUser.UserId).GetValueAsync().ContinueWith(task =>
         {
-            localLobbyPlayer = JsonUtility.FromJson<LobbyPlayer>(task.Result.GetRawJsonValue());
+            localLobbyPlayer = JsonConvert.DeserializeObject<LobbyPlayer>(task.Result.GetRawJsonValue());
 
             Dispatcher.RunOnMainThread(() => 
             {
@@ -176,7 +177,7 @@ public class LobbyController : MonoBehaviour
                 Debug.LogError(task.Exception);
 
             var json = task.Result.GetRawJsonValue();
-            var lobby = JsonUtility.FromJson<Lobby>(json);
+            var lobby = JsonConvert.DeserializeObject<Lobby>(json);
 
             Dispatcher.RunOnMainThread(() => 
             { 
@@ -185,19 +186,25 @@ public class LobbyController : MonoBehaviour
                 redPlayerObjects.ForEach(x => Destroy(x));
                 redPlayerObjects.Clear();
 
-                foreach (var player in lobby.bluePlayers)
-			    {
-                    var playerPanelObject = Instantiate(lobbyPlayerPrefab, blueVerticalPanel).GetComponent<LobbyPlayerObject>();
-                    playerPanelObject.username.text = player.username;
-                    bluePlayerObjects.Add(playerPanelObject.gameObject);
-			    }
+                if(lobby.bluePlayers != null)
+				{
+                    foreach (LobbyPlayer player in lobby.bluePlayers.Values)
+			        {
+                        var playerPanelObject = Instantiate(lobbyPlayerPrefab, blueVerticalPanel).GetComponent<LobbyPlayerObject>();
+                        playerPanelObject.username.text = player.username;
+                        bluePlayerObjects.Add(playerPanelObject.gameObject);
+			        }
+				}
 
-                foreach (var player in lobby.redPlayers)
-                {
-                    var playerPanelObject = Instantiate(lobbyPlayerPrefab, redVerticalPanel).GetComponent<LobbyPlayerObject>();
-                    playerPanelObject.username.text = player.username;
-                    redPlayerObjects.Add(playerPanelObject.gameObject);
-                }
+                if(lobby.redPlayers != null)
+				{
+                    foreach (LobbyPlayer player in lobby.redPlayers.Values)
+                    {
+                        var playerPanelObject = Instantiate(lobbyPlayerPrefab, redVerticalPanel).GetComponent<LobbyPlayerObject>();
+                        playerPanelObject.username.text = player.username;
+                        redPlayerObjects.Add(playerPanelObject.gameObject);
+                    }
+				}
             });
         });
 	}

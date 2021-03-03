@@ -2,6 +2,7 @@
 using Firebase;
 using Firebase.Auth;
 using Firebase.Database;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -84,9 +85,9 @@ namespace Assets.Scripts
                 var lobbyPlayer = new LobbyPlayer();
                 lobbyPlayer.email = newUser.Email;
                 lobbyPlayer.username = username;
-                lobbyPlayer.playerId = Guid.NewGuid();
+                lobbyPlayer.playerId = Guid.NewGuid().ToString();
 
-                string jsonValue = JsonUtility.ToJson(lobbyPlayer);
+                string jsonValue = JsonConvert.SerializeObject(lobbyPlayer);
 
                 dbContext.RootReference.Child("players").Child(newUser.UserId).SetRawJsonValueAsync(jsonValue).ContinueWith(task =>
                 {
@@ -123,7 +124,7 @@ namespace Assets.Scripts
         public Lobby CreateLobby(string name)
         {
             Lobby lobby = new Lobby(name);
-            string jsonValue = JsonUtility.ToJson(lobby);
+            string jsonValue = JsonConvert.SerializeObject(lobby);
             dbContext.RootReference.Child("lobbies").Child(lobby.lobbyId.ToString()).SetRawJsonValueAsync(jsonValue).ContinueWith(task =>
             {
                 Debug.Log("Created new lobby");
@@ -158,7 +159,7 @@ namespace Assets.Scripts
                     foreach (var lobby in snapshot.Children)
                     {
                         var rawJson = lobby.GetRawJsonValue();
-                        lobbies.Add(JsonUtility.FromJson<Lobby>(rawJson));
+                        lobbies.Add(JsonConvert.DeserializeObject<Lobby>(rawJson));
                     }
 
                     onLobbiesRefreshed(lobbies);// Do something with snapshot...
