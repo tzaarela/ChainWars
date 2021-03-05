@@ -80,7 +80,7 @@ public class NetworkController : NetworkManager
 	{
 		if (JsonConvert.DeserializeObject<int>(e.Snapshot.GetRawJsonValue()) == 1)
 		{
-			networkAddress = "localhost";
+			networkAddress = "213.142.9.104";
 			StartClient();
 		}
 	}
