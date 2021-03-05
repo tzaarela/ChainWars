@@ -37,7 +37,16 @@ public class LobbyController : MonoBehaviour
 
     private LobbyPlayer localLobbyPlayer;
     private Lobby joinedLobby;
+    private DatabaseReference lobbiesReference;
 
+    public static LobbyController Instance;
+
+    private void Awake()
+	{
+        if (Instance == null)
+            Instance = this;
+	}
+    
     void Start()
     {
         lobbyPanels = new List<LobbyPanel>();
@@ -58,35 +67,46 @@ public class LobbyController : MonoBehaviour
             });
         });
 
-
-        GameController.database.dbContext.GetReference("lobbies").ChildAdded += HandleOnLobbyCreated;
-        GameController.database.dbContext.GetReference("lobbies").ChildRemoved += HandleOnLobbyRemoved;
+        lobbiesReference = GameController.database.dbContext.GetReference("lobbies");
+        lobbiesReference.ValueChanged += LobbyController_ValueChanged;
+        //GameController.database.dbContext.GetReference("lobbies").ChildRemoved += HandleOnLobbyRemoved;
 
         RefreshLobbies();
     }
 
-	private void HandleOnLobbyRemoved(object sender, ChildChangedEventArgs e)
+    public void UnsubscribeEvents()
+	{
+        lobbiesReference.ValueChanged -= LobbyController_ValueChanged;
+    }
+
+	private void LobbyController_ValueChanged(object sender, ValueChangedEventArgs e)
 	{
         RefreshLobbies();
     }
-
-    private void HandleOnLobbyCreated(object sender, ChildChangedEventArgs e)
+	private void OnDestroy()
 	{
-        Debug.Log("lobby created");
-        RefreshLobbies();
-	}
+        lobbiesReference.ValueChanged -= LobbyController_ValueChanged;
+    }
 
 	public void CreateLobby()
 	{
         GameController.database.onLobbyCreated += RefreshLobbies;
         var lobby = GameController.database.CreateLobby(createLobbyNameText.text);
-        lobby.AddToLobby(localLobbyPlayer, true);
+        localLobbyPlayer.isHost = true;
+        lobby.AddToLobby(localLobbyPlayer);
         joinedLobby = lobby;
         joinedLobby.onLobbyRoomRefreshed += HandleOnLobbyRoomRefreshed;
+        joinedLobby.OnGameStart += HandleOnGameStart;
         lobbyNameText.text = joinedLobby.name;
         lobbyBrowserWindow.SetActive(false);
         lobbyRoomWindow.SetActive(true);
     }
+
+	private void HandleOnGameStart()
+	{
+        lobbiesReference.ValueChanged -= LobbyController_ValueChanged;
+    }
+
     public void RefreshLobbies()
 	{
         GameController.database.onLobbiesRefreshed += HandleOnLobbiesRefreshed;
@@ -98,6 +118,7 @@ public class LobbyController : MonoBehaviour
         Dispatcher.RunOnMainThread(() => 
         {
             CreateLobbiesGameObjects();
+            GameController.database.onLobbiesRefreshed -= HandleOnLobbiesRefreshed;
         });
 	}
 
@@ -105,6 +126,9 @@ public class LobbyController : MonoBehaviour
 	{
         foreach (var item in lobbyPanels)
         {
+            if (item == null)
+                return;
+
             Destroy(item.gameObject);
         }
 
@@ -147,9 +171,13 @@ public class LobbyController : MonoBehaviour
             return;
 		}
 
-        lobby.AddToLobby(localLobbyPlayer, false);
+        localLobbyPlayer.isHost = false;
+        lobby.AddToLobby(localLobbyPlayer);
         joinedLobby = lobby;
+
+        GameController.database.onLobbiesRefreshed -= HandleOnLobbiesRefreshed;
         joinedLobby.onLobbyRoomRefreshed += HandleOnLobbyRoomRefreshed;
+
         lobbyNameText.text = joinedLobby.name;
         lobbyBrowserWindow.SetActive(false);
         lobbyRoomWindow.SetActive(true);
@@ -221,6 +249,6 @@ public class LobbyController : MonoBehaviour
 
     public void StartGame()
 	{
-
+        joinedLobby.StartGame(localLobbyPlayer);
 	}
 }

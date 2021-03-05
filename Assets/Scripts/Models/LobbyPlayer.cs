@@ -14,5 +14,6 @@ namespace Assets.Scripts.Models
 		public string email;
 		public int wins;
 		public int losses;
+		public bool isHost;
 	}
 }

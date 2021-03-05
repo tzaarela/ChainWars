@@ -1,5 +1,6 @@
 ﻿using Assets.Scripts.Models;
 using Firebase;
+using Firebase.Extensions;
 using Firebase.Auth;
 using Firebase.Database;
 using Newtonsoft.Json;
@@ -143,7 +144,6 @@ namespace Assets.Scripts
         public List<Lobby> RefreshLobbies()
         {
             var lobbies = new List<Lobby>();
-
             dbContext.GetReference("lobbies").GetValueAsync().ContinueWith(task =>
             {
                 if (task.IsFaulted)

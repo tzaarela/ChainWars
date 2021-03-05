@@ -22,8 +22,6 @@ public class LoginController : MonoBehaviour
 	[SerializeField] private GameObject loginWindow;
 	[SerializeField] private GameObject registerWindow;
 
-
-
 	private void Start()
 	{
 		GameController.database.onUserSignedIn += HandleOnUserSignedIn;
@@ -37,11 +35,18 @@ public class LoginController : MonoBehaviour
 		GameController.database.SignInUser(emailInput.text, passwordInput.text);
 	}
 
-	public void DebugLogion()
+	public void DebugLogin()
+	{
+		emailInput.text = "test@test.com";
+		passwordInput.text = "123456";
+	}
+
+	public void DebugLogin2()
 	{
 		emailInput.text = "test2@test.com";
 		passwordInput.text = "123456";
 	}
+
 	private void HandleOnUserSignedIn()
 	{
 		SceneController.Instance.ChangeScene(SceneType.LobbyScene);

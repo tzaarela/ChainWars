@@ -1,4 +1,5 @@
 ﻿using Firebase.Database;
+using Firebase.Extensions;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -13,16 +14,21 @@ namespace Assets.Scripts.Models
 	public class Lobby
 	{
 		public string lobbyId;
+		public int isStarted;
+		public int matchIsStarted;
 		public string name;
 		public int playerCount = 0;
 		public int playerMaxCount = 8;
-
+		
 		public LobbyPlayer hostPlayer;
 		public Dictionary<string, LobbyPlayer> lobbyPlayers;
 		public Dictionary<string, LobbyPlayer> redPlayers;
 		public Dictionary<string, LobbyPlayer> bluePlayers;
 
 		public Action onLobbyRoomRefreshed;
+		public Action OnGameStart;
+
+		private DatabaseReference lobbyReference;
 
 		public Lobby(string name)
 		{
@@ -30,45 +36,30 @@ namespace Assets.Scripts.Models
 			lobbyId = Guid.NewGuid().ToString();
 		}
 
-		private void RefreshLobby(object sender, ChildChangedEventArgs e)
+		private void RefreshLobby(object sender, ValueChangedEventArgs e)
 		{
 			Debug.Log("Refreshing lobby...");
 			onLobbyRoomRefreshed?.Invoke();
 		}
 
-		//public void UpdateLobbyInDb()
-		//{
-
-		//	var json = JsonUtility.ToJson(this);
-
-		//	GameController.database.dbContext.GetReference("lobbies").Child(lobbyId.ToString()).SetRawJsonValueAsync(json).ContinueWith(task =>
-		//	{
-		//		if (task.IsFaulted)
-		//			Debug.LogError(task.Exception);
-
-		//		Debug.Log("Updated lobby successfully");
-		//	});
-		//}
-
-		public void AddToLobby(LobbyPlayer player, bool isHost)
+		public void AddToLobby(LobbyPlayer player)
 		{
-
 			lobbyPlayers = new Dictionary<string, LobbyPlayer>();
 			redPlayers = new Dictionary<string, LobbyPlayer>();
 			bluePlayers = new Dictionary<string, LobbyPlayer>();
 
-			if (isHost)
-				hostPlayer = player;
+			lobbyReference = GameController.database.dbContext.GetReference("lobbies").Child(lobbyId.ToString());
+			lobbyReference.Child("isStarted").SetValueAsync(0).ContinueWithOnMainThread(task => { 
 
-			GameController.database.dbContext.GetReference("lobbies").Child(lobbyId.ToString()).ChildChanged += RefreshLobby;
-			GameController.database.dbContext.GetReference("lobbies").Child(lobbyId.ToString()).ChildAdded += RefreshLobby;
-			GameController.database.dbContext.GetReference("lobbies").Child(lobbyId.ToString()).ChildRemoved += RefreshLobby;
+				lobbyReference.Child("isStarted").ValueChanged += HandleOnGameStart;
+			});
 
-
-			var playerRef = GameController.database.dbContext.GetReference("lobbies").Child(lobbyId.ToString())
-				.Child("lobbyPlayers").Push();
+			lobbyReference.ValueChanged += RefreshLobby;
+			var playerRef = lobbyReference.Child("lobbyPlayers").Push();
 
 			player.playerId = playerRef.Key;
+			GameController.localPlayerId = player.playerId;
+			GameController.localPlayer = player;
 
 			lobbyPlayers.Add(player.playerId, player);
 
@@ -83,8 +74,7 @@ namespace Assets.Scripts.Models
 			LeaveBlueTeam(player);
 			LeaveRedTeam(player);
 
-			GameController.database.dbContext.GetReference("lobbies").Child(lobbyId.ToString())
-				.Child("lobbyPlayers").Child(player.playerId).RemoveValueAsync();
+			lobbyReference.Child("lobbyPlayers").Child(player.playerId).RemoveValueAsync();
 		}
 
 		public void JoinBlueTeam(LobbyPlayer player)
@@ -100,8 +90,7 @@ namespace Assets.Scripts.Models
 			playerCount++;
 
 			var json = JsonConvert.SerializeObject(player);
-			GameController.database.dbContext.GetReference("lobbies").Child(lobbyId.ToString())
-				.Child("bluePlayers").Child(player.playerId).SetRawJsonValueAsync(json);
+			lobbyReference.Child("bluePlayers").Child(player.playerId).SetRawJsonValueAsync(json);
 		}
 
 		public void JoinRedTeam(LobbyPlayer player)
@@ -117,8 +106,7 @@ namespace Assets.Scripts.Models
 			playerCount++;
 
 			var json = JsonConvert.SerializeObject(player);
-			var playerRef = GameController.database.dbContext.GetReference("lobbies").Child(lobbyId.ToString())
-				.Child("redPlayers").Child(player.playerId).SetRawJsonValueAsync(json);
+			lobbyReference.Child("redPlayers").Child(player.playerId).SetRawJsonValueAsync(json);
 		}
 
 		public bool IsAlreadyOnTeam(Dictionary<string, LobbyPlayer> team, LobbyPlayer player)
@@ -133,16 +121,36 @@ namespace Assets.Scripts.Models
 		{
 			playerCount--;
 			bluePlayers.Remove(player.playerId);
-			GameController.database.dbContext.GetReference("lobbies").Child(lobbyId.ToString())
-				.Child("bluePlayers").Child(player.playerId).RemoveValueAsync();
+			lobbyReference.Child("bluePlayers").Child(player.playerId).RemoveValueAsync();
 		}
 
 		public void LeaveRedTeam(LobbyPlayer player)
 		{
 			playerCount--;
 			redPlayers.Remove(player.playerId);
-			GameController.database.dbContext.GetReference("lobbies").Child(lobbyId.ToString())
-				.Child("redPlayers").Child(player.playerId).RemoveValueAsync();
+			lobbyReference.Child("redPlayers").Child(player.playerId).RemoveValueAsync();
+		}
+
+		public void StartGame(LobbyPlayer player)
+		{
+			if(player.isHost)
+			{
+				lobbyReference.Child("isStarted").SetValueAsync(1);
+			}
+		}
+
+		private void HandleOnGameStart(object sender, ValueChangedEventArgs e)
+		{
+			var isStarted = JsonConvert.DeserializeObject<int>(e.Snapshot.GetRawJsonValue());
+
+			if(isStarted == 1)
+			{
+				GameController.gameLobbyId = lobbyId;
+				lobbyReference.ValueChanged -= RefreshLobby;
+				lobbyReference.Child("isStarted").ValueChanged -= HandleOnGameStart;
+				LobbyController.Instance.UnsubscribeEvents();
+				SceneController.Instance.ChangeScene(SceneType.GameScene);
+			}
 		}
 	}
 }
