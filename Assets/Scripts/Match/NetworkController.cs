@@ -10,29 +10,41 @@ using UnityEngine;
 
 public class NetworkController : NetworkManager
 {
+	[SerializeField] bool debugMode;
+
 	private string localPlayerId;
 	private string gameLobbyId;
 
 	private LobbyPlayer localPlayer;
 	private Action onLocalPlayerFetched;
 
-	public NetworkController()
-	{
-	}
-
 	public override void Awake()
 	{
 		base.Awake();
-		Debug.Log("Awake");
+
+		if (debugMode)
+			return;
+
 		gameLobbyId = GameController.gameLobbyId;
 		localPlayerId = GameController.localPlayerId;
-		//GameController.onFirebaseInitialized += Initialize;
 	}
 
 	public override void Start()
 	{
 		base.Start();
+
+		if(debugMode)
+		{
+			DebugStart();
+			return;
+		}
+
 		Initialize();
+	}
+
+	private void DebugStart()
+	{
+		Debug.Log("Debug Start!");
 	}
 
 	private void Initialize()
@@ -105,15 +117,14 @@ public class NetworkController : NetworkManager
 		});
 	}
 
-
 	public override void OnStartHost()
 	{
-		//if (localPlayer.isHost)
-		//{
-			GameController.database.dbContext.GetReference("lobbies")
-			.Child(gameLobbyId).Child("isHostStarted").SetValueAsync(1);
+		if (debugMode)
+			return;
+		
+		GameController.database.dbContext.GetReference("lobbies")
+		.Child(gameLobbyId).Child("isHostStarted").SetValueAsync(1);
 
-			Debug.Log("Host server started");
-		//}
+		Debug.Log("Host server started");
 	}
 }

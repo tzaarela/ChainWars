@@ -1,12 +1,8 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
-using Assets.Scripts;
 using Assets.Scripts.Models;
-using System;
 using Firebase.Database;
-using DG.Tweening;
 using System.Linq;
 using Newtonsoft.Json;
 
@@ -47,12 +43,11 @@ public class LobbyController : MonoBehaviour
             Instance = this;
 	}
     
-    void Start()
+    private void Start()
     {
         lobbyPanels = new List<LobbyPanel>();
         redPlayerObjects = new List<GameObject>();
         bluePlayerObjects = new List<GameObject>();
-
 
         var dbUser = GameController.database.user;
 

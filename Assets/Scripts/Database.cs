@@ -138,7 +138,7 @@ namespace Assets.Scripts
 
         public void RemoveLobby(Guid guid)
 		{
-
+            //TODO IMPLEMENT
 		}
 
         public List<Lobby> RefreshLobbies()
