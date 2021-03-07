@@ -141,7 +141,7 @@ namespace Assets.Scripts
             return lobby;
         }
 
-        public System.Threading.Tasks.Task RemoveLobby(string id)
+        public Task RemoveLobby(string id)
 		{
             return dbContext.RootReference.Child("lobbies").Child(id).RemoveValueAsync().ContinueWith(task =>
             {
@@ -152,10 +152,7 @@ namespace Assets.Scripts
             });
         }
 
-        public void RemoveLobby(Guid guid)
-		{
-            //TODO IMPLEMENT
-		}
+       
 
         public List<Lobby> RefreshLobbies()
         {

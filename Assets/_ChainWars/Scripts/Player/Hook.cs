@@ -13,6 +13,7 @@ public class Hook : NetworkBehaviour
 
 	[Header("Hook Settings")]
 	[SerializeField] private float travelDistance = 30f;
+	[Range(0, 5)]
 	[SerializeField] private float shootSpeed = 3f;
 	[Range(0,1)]
 	[SerializeField] private float pullSpeed = 0.5f;

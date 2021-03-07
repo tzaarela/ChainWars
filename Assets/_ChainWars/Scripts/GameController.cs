@@ -22,10 +22,6 @@ public class GameController : MonoBehaviour
 		Invoke("InitializeFirebase", 0.5f);
     }
 
-	private void Start()
-	{
-	}
-
 	private void InitializeFirebase()
 	{
 		database.InitializeFirebase();

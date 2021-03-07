@@ -76,6 +76,7 @@ namespace Assets.Scripts.Models
 			LeaveBlueTeam(player);
 			LeaveRedTeam(player);
 			lobbyReference.ValueChanged -= RefreshLobby;
+			lobbyReference.Child("isStarted").ValueChanged -= HandleOnGameStart;
 			lobbyReference.Child("lobbyPlayers").Child(player.playerId).RemoveValueAsync();
 
 			if (player.isHost)
@@ -84,13 +85,11 @@ namespace Assets.Scripts.Models
 			}
 		}
 
-		private void HostLeft()
+		private async void HostLeft()
 		{
+			await GameController.database.RemoveLobby(lobbyId);
 			Debug.Log("Host left lobby: " + lobbyId);
-			//lobbyReference.Child(lobbyId).SetValueAsync(null).ContinueWithOnMainThread(task =>
-			//{
-			onHostLeft();
-			//});
+			onHostLeft?.Invoke();
 		}
 
 		public void JoinBlueTeam(LobbyPlayer player)
@@ -161,6 +160,9 @@ namespace Assets.Scripts.Models
 
 		private void HandleOnGameStart(object sender, ValueChangedEventArgs e)
 		{
+			if (e.Snapshot.GetRawJsonValue() == null)
+				return;
+
 			var isStarted = JsonConvert.DeserializeObject<int>(e.Snapshot.GetRawJsonValue());
 
 			if(isStarted == 1)
