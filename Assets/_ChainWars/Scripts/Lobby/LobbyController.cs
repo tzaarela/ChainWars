@@ -5,6 +5,8 @@ using Assets.Scripts.Models;
 using Firebase.Database;
 using System.Linq;
 using Newtonsoft.Json;
+using Assets.Scripts;
+using Firebase.Extensions;
 
 public class LobbyController : MonoBehaviour
 {
@@ -69,7 +71,7 @@ public class LobbyController : MonoBehaviour
         RefreshLobbies();
     }
 
-    public void UnsubscribeEvents()
+	public void UnsubscribeEvents()
 	{
         lobbiesReference.ValueChanged -= LobbyController_ValueChanged;
     }
@@ -91,7 +93,8 @@ public class LobbyController : MonoBehaviour
         lobby.AddToLobby(localLobbyPlayer);
         joinedLobby = lobby;
         joinedLobby.onLobbyRoomRefreshed += HandleOnLobbyRoomRefreshed;
-        joinedLobby.OnGameStart += HandleOnGameStart;
+        joinedLobby.onGameStart += HandleOnGameStart;
+        joinedLobby.onHostLeft += HandleOnHostLeft;
         lobbyNameText.text = joinedLobby.name;
         lobbyBrowserWindow.SetActive(false);
         lobbyRoomWindow.SetActive(true);
@@ -154,7 +157,7 @@ public class LobbyController : MonoBehaviour
 
         if (selectedLobbyPanel == null)
 		{
-            Debug.LogError("No lobby selected");
+            Debug.Log("No lobby selected");
             return;
 		}
 
@@ -171,21 +174,41 @@ public class LobbyController : MonoBehaviour
         joinedLobby = lobby;
 
         GameController.database.onLobbiesRefreshed -= HandleOnLobbiesRefreshed;
-        joinedLobby.onLobbyRoomRefreshed += HandleOnLobbyRoomRefreshed;
 
+        joinedLobby.onLobbyRoomRefreshed += HandleOnLobbyRoomRefreshed;
+        joinedLobby.onHostLeft += HandleOnHostLeft;
         lobbyNameText.text = joinedLobby.name;
         lobbyBrowserWindow.SetActive(false);
         lobbyRoomWindow.SetActive(true);
 	}
 
-	public void LeaveLobby()
+	private void HandleOnHostLeft()
+	{
+        GameController.database.RemoveLobby(joinedLobby.lobbyId);
+        joinedLobby.onLobbyRoomRefreshed -= HandleOnLobbyRoomRefreshed;
+        joinedLobby.onHostLeft -= HandleOnHostLeft;
+        joinedLobby = null;
+        lobbyRoomWindow.SetActive(false);
+        lobbyBrowserWindow.SetActive(true);
+        RefreshLobbies();
+    }
+
+    public void LeaveLobby()
 	{
         joinedLobby.RemoveFromLobby(localLobbyPlayer);
         joinedLobby.onLobbyRoomRefreshed -= HandleOnLobbyRoomRefreshed;
         joinedLobby = null;
         lobbyRoomWindow.SetActive(false);
         lobbyBrowserWindow.SetActive(true);
+        RefreshLobbies();
 	}
+
+    public void LogOut()
+	{
+        GameController.database.LogOut();
+        SceneController.Instance.ChangeScene(SceneType.LoginScene);
+	}
+
 	private void HandleOnLobbyRoomRefreshed()
 	{
         CreateLobbyRoomObjects();

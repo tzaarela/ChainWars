@@ -15,7 +15,7 @@ namespace Assets.Scripts.Models
 	{
 		public string lobbyId;
 		public int isStarted;
-		public int matchIsStarted;
+		public int hostIsStarted;
 		public string name;
 		public int playerCount = 0;
 		public int playerMaxCount = 8;
@@ -26,7 +26,9 @@ namespace Assets.Scripts.Models
 		public Dictionary<string, LobbyPlayer> bluePlayers;
 
 		public Action onLobbyRoomRefreshed;
-		public Action OnGameStart;
+		public Action onGameStart;
+		public Action onHostLeft;
+
 
 		private DatabaseReference lobbyReference;
 
@@ -73,8 +75,22 @@ namespace Assets.Scripts.Models
 			lobbyPlayers.Remove(player.playerId);
 			LeaveBlueTeam(player);
 			LeaveRedTeam(player);
-
+			lobbyReference.ValueChanged -= RefreshLobby;
 			lobbyReference.Child("lobbyPlayers").Child(player.playerId).RemoveValueAsync();
+
+			if (player.isHost)
+			{
+				HostLeft();
+			}
+		}
+
+		private void HostLeft()
+		{
+			Debug.Log("Host left lobby: " + lobbyId);
+			//lobbyReference.Child(lobbyId).SetValueAsync(null).ContinueWithOnMainThread(task =>
+			//{
+			onHostLeft();
+			//});
 		}
 
 		public void JoinBlueTeam(LobbyPlayer player)
@@ -119,16 +135,20 @@ namespace Assets.Scripts.Models
 
 		public void LeaveBlueTeam(LobbyPlayer player)
 		{
-			playerCount--;
-			bluePlayers.Remove(player.playerId);
-			lobbyReference.Child("bluePlayers").Child(player.playerId).RemoveValueAsync();
+			if(bluePlayers.Remove(player.playerId))
+			{
+				playerCount--;
+				lobbyReference.Child("bluePlayers").Child(player.playerId).RemoveValueAsync();
+			}
 		}
 
 		public void LeaveRedTeam(LobbyPlayer player)
 		{
-			playerCount--;
-			redPlayers.Remove(player.playerId);
-			lobbyReference.Child("redPlayers").Child(player.playerId).RemoveValueAsync();
+			if(redPlayers.Remove(player.playerId))
+			{
+				playerCount--;
+				lobbyReference.Child("redPlayers").Child(player.playerId).RemoveValueAsync();
+			}
 		}
 
 		public void StartGame(LobbyPlayer player)

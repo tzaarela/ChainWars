@@ -29,6 +29,12 @@ public class LoginController : MonoBehaviour
 		GameController.database.onFirebaseInitialized += () => { statusText.text = "connected"; };
 	}
 
+	private void OnDestroy()
+	{
+		GameController.database.onUserSignedIn -= HandleOnUserSignedIn;
+		GameController.database.onUserRegistered -= HandleOnUserRegistered;
+	}
+
 	public void Login()
 	{
 		Debug.Log("Trying to login with mail: " + emailInput.text);

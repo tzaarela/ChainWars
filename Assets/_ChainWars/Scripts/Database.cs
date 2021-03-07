@@ -122,6 +122,11 @@ namespace Assets.Scripts
             });
         }
 
+        public void LogOut()
+		{
+            auth.SignOut();
+		}
+
         public Lobby CreateLobby(string name)
         {
             Lobby lobby = new Lobby(name);
@@ -134,6 +139,17 @@ namespace Assets.Scripts
             });
 
             return lobby;
+        }
+
+        public System.Threading.Tasks.Task RemoveLobby(string id)
+		{
+            return dbContext.RootReference.Child("lobbies").Child(id).RemoveValueAsync().ContinueWith(task =>
+            {
+                if (task.IsFaulted)
+                    Debug.LogError(task.Exception);
+
+                Debug.Log("Lobby Removed");
+            });
         }
 
         public void RemoveLobby(Guid guid)
