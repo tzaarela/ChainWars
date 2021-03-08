@@ -42,10 +42,14 @@ namespace Assets.Scripts.Models
 			bluePlayers = new Dictionary<string, LobbyPlayer>();
 		}
 
-		private void RefreshLobby(object sender, ValueChangedEventArgs e)
+		private async void RefreshLobbyAsync(object sender, ValueChangedEventArgs e)
 		{
 			Debug.Log("Refreshing lobby...");
-			onLobbyRoomRefreshed?.Invoke();
+			await lobbyReference.GetValueAsync().ContinueWithOnMainThread(task =>
+			{
+				GameController.lobby = JsonConvert.DeserializeObject<Lobby>(task.Result.GetRawJsonValue());
+				onLobbyRoomRefreshed?.Invoke();
+			});
 		}
 
 		public void AddToLobby(LobbyPlayer player)
@@ -60,8 +64,8 @@ namespace Assets.Scripts.Models
 				lobbyReference.Child("isStarted").ValueChanged += HandleOnGameStart;
 			});
 
-			lobbyReference.Child("redPlayers").ValueChanged += RefreshLobby;
-			lobbyReference.Child("bluePlayers").ValueChanged += RefreshLobby;
+			lobbyReference.Child("redPlayers").ValueChanged += RefreshLobbyAsync;
+			lobbyReference.Child("bluePlayers").ValueChanged += RefreshLobbyAsync;
 			var playerRef = lobbyReference.Child("lobbyPlayers").Push();
 
 			player.playerId = playerRef.Key;
@@ -81,8 +85,8 @@ namespace Assets.Scripts.Models
 			lobbyPlayers.Remove(player.playerId);
 			LeaveBlueTeam(player);
 			LeaveRedTeam(player);
-			lobbyReference.Child("redPlayers").ValueChanged -= RefreshLobby;
-			lobbyReference.Child("bluePlayers").ValueChanged -= RefreshLobby;
+			lobbyReference.Child("redPlayers").ValueChanged -= RefreshLobbyAsync;
+			lobbyReference.Child("bluePlayers").ValueChanged -= RefreshLobbyAsync;
 			lobbyReference.Child("isStarted").ValueChanged -= HandleOnGameStart;
 			lobbyReference.Child("lobbyPlayers").Child(player.playerId).RemoveValueAsync();
 
@@ -176,8 +180,8 @@ namespace Assets.Scripts.Models
 			{
 				GameController.gameLobbyId = lobbyId;
 
-				lobbyReference.Child("redPlayers").ValueChanged -= RefreshLobby;
-				lobbyReference.Child("bluePlayers").ValueChanged -= RefreshLobby;
+				lobbyReference.Child("redPlayers").ValueChanged -= RefreshLobbyAsync;
+				lobbyReference.Child("bluePlayers").ValueChanged -= RefreshLobbyAsync;
 				lobbyReference.Child("isStarted").ValueChanged -= HandleOnGameStart;
 				LobbyController.Instance.UnsubscribeEvents();
 				SceneController.Load(SceneType.MatchScene);
