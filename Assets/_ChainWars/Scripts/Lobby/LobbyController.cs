@@ -174,7 +174,9 @@ public class LobbyController : MonoBehaviour
         lobby.onLobbyRoomRefreshed += HandleOnLobbyRoomRefreshedAsync;
         lobby.onHostLeft += HandleOnHostLeft;
 
-		lobbyNameText.text = lobby.name;
+        lobbiesReference.ValueChanged -= LobbyController_ValueChanged;
+
+        lobbyNameText.text = lobby.name;
         lobbyBrowserWindow.SetActive(false);
         lobbyRoomWindow.SetActive(true);
 	}

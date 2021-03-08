@@ -76,7 +76,7 @@ namespace Assets.Scripts.Models
 
 			await lobbyReference.Child("isStarted").SetValueAsync(0).ContinueWithOnMainThread(task => { 
 
-				lobbyReference.Child("isStarted").ValueChanged += HandleOnGameStart;
+				lobbyReference.Child("isStarted").ValueChanged += HandleOnGameStartAsync;
 			});
 
 			lobbyReference.Child("redPlayers").ValueChanged += RefreshLobbyAsync;
@@ -101,7 +101,7 @@ namespace Assets.Scripts.Models
 			LeaveRedTeam(player);
 			lobbyReference.Child("redPlayers").ValueChanged -= RefreshLobbyAsync;
 			lobbyReference.Child("bluePlayers").ValueChanged -= RefreshLobbyAsync;
-			lobbyReference.Child("isStarted").ValueChanged -= HandleOnGameStart;
+			lobbyReference.Child("isStarted").ValueChanged -= HandleOnGameStartAsync;
 			lobbyReference.Child("lobbyPlayers").Child(player.playerId).RemoveValueAsync();
 
 			if (player.isHost)
@@ -197,7 +197,7 @@ namespace Assets.Scripts.Models
 			}
 		}
 
-		private void HandleOnGameStart(object sender, ValueChangedEventArgs e)
+		private async void HandleOnGameStartAsync(object sender, ValueChangedEventArgs e)
 		{
 			if (e.Snapshot.GetRawJsonValue() == null)
 				return;
@@ -206,12 +206,16 @@ namespace Assets.Scripts.Models
 
 			if(isStarted == 1)
 			{
+
+				var task = await lobbyReference.Child("matchId").GetValueAsync();
+				matchId = task.GetValue(false).ToString();
+
 				GameController.gameLobbyId = lobbyId;
 				GameController.lobby = this;
 
 				lobbyReference.Child("redPlayers").ValueChanged -= RefreshLobbyAsync;
 				lobbyReference.Child("bluePlayers").ValueChanged -= RefreshLobbyAsync;
-				lobbyReference.Child("isStarted").ValueChanged -= HandleOnGameStart;
+				lobbyReference.Child("isStarted").ValueChanged -= HandleOnGameStartAsync;
 				LobbyController.Instance.UnsubscribeEvents();
 				SceneController.Load(SceneType.MatchScene);
 			}
