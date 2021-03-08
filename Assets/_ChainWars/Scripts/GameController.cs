@@ -11,6 +11,7 @@ public class GameController : MonoBehaviour
 	public static Database database;
 	public static Action onFirebaseInitialized;
 	public static LobbyPlayer localPlayer;
+	public static Lobby lobby;
 	public static string localPlayerId;
 	public static string gameLobbyId;
 

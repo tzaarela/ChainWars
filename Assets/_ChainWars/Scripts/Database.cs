@@ -18,7 +18,7 @@ namespace Assets.Scripts
         public FirebaseApp app;
         public FirebaseAuth auth;
         public FirebaseUser user;
-        public FirebaseDatabase dbContext;
+        public FirebaseDatabase root;
 
         public Action onUserRegistered;
         public Action onUserSignedIn;
@@ -27,10 +27,6 @@ namespace Assets.Scripts
         public Action onLobbyCreated;
         public Action<List<Lobby>> onLobbiesRefreshed;
         public Action onFirebaseInitialized;
-
-        public Database()
-        {
-        }
 
         public void InitializeFirebase()
         {
@@ -42,7 +38,7 @@ namespace Assets.Scripts
 
                     app = FirebaseApp.DefaultInstance;
                     auth = FirebaseAuth.DefaultInstance;
-                    dbContext = FirebaseDatabase.DefaultInstance;
+                    root = FirebaseDatabase.DefaultInstance;
                     Debug.Log("firebase initialized");
                     Dispatcher.RunOnMainThread(onFirebaseInitialized);
                 }
@@ -90,7 +86,7 @@ namespace Assets.Scripts
 
                 string jsonValue = JsonConvert.SerializeObject(lobbyPlayer);
 
-                dbContext.RootReference.Child("players").Child(newUser.UserId).SetRawJsonValueAsync(jsonValue).ContinueWithOnMainThread(task =>
+                root.RootReference.Child("players").Child(newUser.UserId).SetRawJsonValueAsync(jsonValue).ContinueWithOnMainThread(task =>
                 {
                     Debug.Log("Created db reference to user");
 
@@ -131,7 +127,7 @@ namespace Assets.Scripts
         {
             Lobby lobby = new Lobby(name);
             string jsonValue = JsonConvert.SerializeObject(lobby);
-            dbContext.RootReference.Child("lobbies").Child(lobby.lobbyId.ToString()).SetRawJsonValueAsync(jsonValue).ContinueWith(task =>
+            root.RootReference.Child("lobbies").Child(lobby.lobbyId.ToString()).SetRawJsonValueAsync(jsonValue).ContinueWith(task =>
             {
                 Debug.Log("Created new lobby");
 
@@ -143,7 +139,7 @@ namespace Assets.Scripts
 
         public Task RemoveLobby(string id)
 		{
-            return dbContext.RootReference.Child("lobbies").Child(id).RemoveValueAsync().ContinueWith(task =>
+            return root.RootReference.Child("lobbies").Child(id).RemoveValueAsync().ContinueWith(task =>
             {
                 if (task.IsFaulted)
                     Debug.LogError(task.Exception);
@@ -157,7 +153,7 @@ namespace Assets.Scripts
         public List<Lobby> RefreshLobbies()
         {
             var lobbies = new List<Lobby>();
-            dbContext.GetReference("lobbies").GetValueAsync().ContinueWith(task =>
+            root.GetReference("lobbies").GetValueAsync().ContinueWith(task =>
             {
                 if (task.IsFaulted)
                 {

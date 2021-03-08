@@ -15,5 +15,6 @@ namespace Assets.Scripts.Models
 		public int wins;
 		public int losses;
 		public bool isHost;
+		public bool isConnected;
 	}
 }

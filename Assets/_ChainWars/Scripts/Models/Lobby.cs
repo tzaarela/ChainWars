@@ -15,7 +15,7 @@ namespace Assets.Scripts.Models
 	{
 		public string lobbyId;
 		public int isStarted;
-		public int hostIsStarted;
+		public int isHostStarted;
 		public string name;
 		public int playerCount = 0;
 		public int playerMaxCount = 8;
@@ -50,7 +50,7 @@ namespace Assets.Scripts.Models
 			redPlayers = new Dictionary<string, LobbyPlayer>();
 			bluePlayers = new Dictionary<string, LobbyPlayer>();
 
-			lobbyReference = GameController.database.dbContext.GetReference("lobbies").Child(lobbyId.ToString());
+			lobbyReference = GameController.database.root.GetReference("lobbies").Child(lobbyId.ToString());
 			lobbyReference.Child("isStarted").SetValueAsync(0).ContinueWithOnMainThread(task => { 
 
 				lobbyReference.Child("isStarted").ValueChanged += HandleOnGameStart;
@@ -62,6 +62,7 @@ namespace Assets.Scripts.Models
 			player.playerId = playerRef.Key;
 			GameController.localPlayerId = player.playerId;
 			GameController.localPlayer = player;
+			GameController.lobby = this;
 
 			lobbyPlayers.Add(player.playerId, player);
 

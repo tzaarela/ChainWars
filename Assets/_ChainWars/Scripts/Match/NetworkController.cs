@@ -1,4 +1,5 @@
 using Assets.Scripts.Models;
+using Firebase.Database;
 using Firebase.Extensions;
 using Mirror;
 using Newtonsoft.Json;
@@ -12,11 +13,14 @@ public class NetworkController : NetworkManager
 {
 	[SerializeField] bool debugMode;
 
-	private string localPlayerId;
-	private string gameLobbyId;
-
+	private bool allClientsConnected;
+	private int playerCount;
 	private LobbyPlayer localPlayer;
-	private Action onLocalPlayerFetched;
+	private Lobby localLobby;
+	private Action onAllPlayersConnected;
+	private Match match;
+	private DatabaseReference lobbyReference;
+	private DatabaseReference matchReference;
 
 	public override void Awake()
 	{
@@ -25,11 +29,13 @@ public class NetworkController : NetworkManager
 		if (debugMode)
 			return;
 
-		gameLobbyId = GameController.gameLobbyId;
-		localPlayerId = GameController.localPlayerId;
+		localPlayer = GameController.localPlayer;
+		localLobby = GameController.lobby;
+		lobbyReference = GameController.database.root.GetReference("lobbies").Child(localLobby.lobbyId);
+		playerCount = localLobby.redPlayers.Count + localLobby.bluePlayers.Count;
 	}
 
-	public override void Start()
+	public override async void Start()
 	{
 		base.Start();
 
@@ -39,7 +45,47 @@ public class NetworkController : NetworkManager
 			return;
 		}
 
-		Initialize();
+		GameController.database.root.GetReference("matches").ChildAdded += HandleOnMatchAdded;
+
+		match = new Match(localLobby.redPlayers, localLobby.bluePlayers);
+
+		if (localPlayer.isHost)
+		{
+			var json = JsonConvert.SerializeObject(match);
+			var dbRef = GameController.database.root.GetReference("matches").Push();
+			match.matchId = dbRef.Key;
+
+			await dbRef.SetRawJsonValueAsync(json).ContinueWith(task =>
+			{
+				matchReference = GameController.database.root
+				.GetReference("matches").Child(match.matchId);
+
+				matchReference.Child("playersConnected").ValueChanged += HandlePlayersConnected;
+				onAllPlayersConnected += HandleOnAllPlayersConnected;
+				Connect();
+
+			});
+		}
+	}
+
+	private void HandleOnMatchAdded(object sender, ChildChangedEventArgs e)
+	{
+		if(!localPlayer.isHost)
+		{
+			matchReference = GameController.database.root
+				.GetReference("matches").Child(e.Snapshot.Key);
+
+			match.matchId = e.Snapshot.Key;
+			Connect();
+		}
+	}
+
+	private void HandlePlayersConnected(object sender, ValueChangedEventArgs e)
+	{
+		var playersConnected = JsonConvert.DeserializeObject<int>(e.Snapshot.GetRawJsonValue());
+		Debug.Log(playersConnected + "/" + match.playerCount + "connected");
+		if (match.playerCount == playersConnected)
+			onAllPlayersConnected();
 	}
 
 	private void DebugStart()
@@ -47,69 +93,34 @@ public class NetworkController : NetworkManager
 		Debug.Log("Debug Start!");
 	}
 
-	private void Initialize()
+	private void Connect()
 	{
-		GameController.database.dbContext.GetReference("lobbies")
-			.Child(gameLobbyId).Child("isHostStarted").SetValueAsync(0);
-
-		onLocalPlayerFetched += HandleOnLocalPlayerFetched;
-		GetLocalPlayer();
-
+		ConnectAndWaitForHostStart();
 	}
 
-	private void HandleOnLocalPlayerFetched()
+	private void HandleOnAllPlayersConnected()
 	{
-		Debug.Log("localPlayer fetched");
+		Debug.Log("All players connected");
 		if (localPlayer.isHost)
-			StartServerHost();
-		else
-			WaitForServerStart();
-
+			singleton.StartHost();
 	}
 
-	private void StartServerHost()
+	private void ConnectAndWaitForHostStart()
 	{
-		Debug.Log("Trying to start server...");
-		StartCoroutine(StartServerCoroutine());
-	}
+		Debug.Log($"player {localPlayer.username} connected");
 
-	IEnumerator StartServerCoroutine()
-	{
-		//This needs a change later....
-		yield return new WaitForSeconds(2f);
-		singleton.StartHost();
-	}
-	public override void OnStartHost()
-	{
-		if (debugMode)
-			return;
+		if (!localPlayer.isHost)
+			lobbyReference.Child("isHostStarted").ValueChanged += HandleOnClientHostStarted;
 
-		Debug.Log("SteamUserId: " + Mirror.FizzySteam.FizzySteamworks.SteamUserID.ToString());
-
-		GameController.database.dbContext.GetReference("lobbies").Child(gameLobbyId).Child("hostSteamUserId")
-		.SetValueAsync(Mirror.FizzySteam.FizzySteamworks.SteamUserID.ToString()).ContinueWith(task => 
-		{
-			GameController.database.dbContext.GetReference("lobbies")
-			.Child(gameLobbyId).Child("isHostStarted").SetValueAsync(1);
-		});
-
-		Debug.Log("Host server started");
-	}
-
-	private void WaitForServerStart()
-	{
-	
-		Debug.Log("Waiting for server to start...");
-		GameController.database.dbContext.GetReference("lobbies")
-			.Child(gameLobbyId).Child("isHostStarted").ValueChanged += HandleOnClientHostStarted;
+		GameController.database.root.GetReference("matches").Child(match.matchId)
+			.Child("playersConnected").SetValueAsync(+1);
 	}
 
 	private void HandleOnClientHostStarted(object sender, Firebase.Database.ValueChangedEventArgs e)
 	{
 		if (JsonConvert.DeserializeObject<int>(e.Snapshot.GetRawJsonValue()) == 1)
 		{
-			GameController.database.dbContext.GetReference("lobbies")
-			.Child(gameLobbyId).Child("hostSteamUserId").GetValueAsync().ContinueWithOnMainThread(task =>
+			lobbyReference.Child("hostSteamUserId").GetValueAsync().ContinueWithOnMainThread(task =>
 			{
 				var hostSteamUserId = JsonConvert.DeserializeObject<string>(task.Result.GetRawJsonValue());
 				networkAddress = hostSteamUserId;
@@ -118,24 +129,23 @@ public class NetworkController : NetworkManager
 		}
 	}
 
-	private void GetLocalPlayer()
+	
+
+	public override void OnStartHost()
 	{
-		Debug.Log("getting local player...");
-		GameController.database.dbContext.GetReference("lobbies")
-		.Child(gameLobbyId).Child("lobbyPlayers").Child(localPlayerId).GetValueAsync()
-		.ContinueWithOnMainThread(task => 
+		if (debugMode)
+			return;
+
+		Debug.Log("SteamUserId: " + Mirror.FizzySteam.FizzySteamworks.SteamUserID.ToString());
+
+		GameController.database.root.GetReference("lobbies").Child(localLobby.lobbyId).Child("hostSteamUserId")
+		.SetValueAsync(Mirror.FizzySteam.FizzySteamworks.SteamUserID.ToString()).ContinueWith(task => 
 		{
-		
-			if (task.IsCanceled)
-				Debug.Log("get localplayer canceled");
-
-			if (task.IsFaulted)
-				Debug.LogError(task.Exception);
-
-			var json = task.Result.GetRawJsonValue();
-			localPlayer = JsonConvert.DeserializeObject<LobbyPlayer>(json);
-			onLocalPlayerFetched();
+			GameController.database.root.GetReference("lobbies")
+			.Child(localLobby.lobbyId).Child("isHostStarted").SetValueAsync(1);
 		});
+
+		Debug.Log("Host server started");
 	}
 
 	

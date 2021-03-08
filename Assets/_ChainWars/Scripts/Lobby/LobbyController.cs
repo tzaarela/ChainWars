@@ -53,7 +53,7 @@ public class LobbyController : MonoBehaviour
 
         var dbUser = GameController.database.user;
 
-        GameController.database.dbContext.GetReference("players")
+        GameController.database.root.GetReference("players")
             .Child(dbUser.UserId).GetValueAsync().ContinueWith(task =>
         {
             localLobbyPlayer = JsonConvert.DeserializeObject<LobbyPlayer>(task.Result.GetRawJsonValue());
@@ -65,7 +65,7 @@ public class LobbyController : MonoBehaviour
             });
         });
 
-        lobbiesReference = GameController.database.dbContext.GetReference("lobbies");
+        lobbiesReference = GameController.database.root.GetReference("lobbies");
         lobbiesReference.ValueChanged += LobbyController_ValueChanged;
         //GameController.database.dbContext.GetReference("lobbies").ChildRemoved += HandleOnLobbyRemoved;
 
@@ -115,12 +115,12 @@ public class LobbyController : MonoBehaviour
 	{
         Dispatcher.RunOnMainThread(() => 
         {
-            CreateLobbiesGameObjects();
+            CreateLobbyGameObjects();
             GameController.database.onLobbiesRefreshed -= HandleOnLobbiesRefreshed;
         });
 	}
 
-    private void CreateLobbiesGameObjects()
+    private void CreateLobbyGameObjects()
 	{
         foreach (var item in lobbyPanels)
         {
