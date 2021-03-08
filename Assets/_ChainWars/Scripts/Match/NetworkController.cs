@@ -72,6 +72,7 @@ public class NetworkController : NetworkManager
 	{
 		if(!localPlayer.isHost)
 		{
+			GameController.database.root.GetReference("matches").ChildAdded -= HandleOnMatchAdded;
 			matchReference = GameController.database.root
 				.GetReference("matches").Child(e.Snapshot.Key);
 
@@ -115,6 +116,7 @@ public class NetworkController : NetworkManager
 	{
 		if (JsonConvert.DeserializeObject<int>(e.Snapshot.GetRawJsonValue()) == 1)
 		{
+			lobbyReference.Child("isHostStarted").ValueChanged -= HandleOnClientHostStarted;
 			lobbyReference.Child("hostSteamUserId").GetValueAsync().ContinueWithOnMainThread(task =>
 			{
 				var hostSteamUserId = JsonConvert.DeserializeObject<string>(task.Result.GetRawJsonValue());
