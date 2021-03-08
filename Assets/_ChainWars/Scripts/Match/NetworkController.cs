@@ -15,6 +15,7 @@ public class NetworkController : NetworkManager
 
 	private bool allClientsConnected;
 	private int playerCount;
+	private int playersConnected;
 	private LobbyPlayer localPlayer;
 	private Lobby localLobby;
 	private Action onAllPlayersConnected;
@@ -29,11 +30,11 @@ public class NetworkController : NetworkManager
 		if (debugMode)
 			return;
 
-		localPlayer = GameController.localPlayer;
-		localLobby = GameController.lobby;
-		lobbyReference = GameController.database.root.GetReference("lobbies").Child(localLobby.lobbyId);
-		playerCount = localLobby.redPlayers.Count + localLobby.bluePlayers.Count;
+		
+		
 	}
+
+	
 
 	public override async void Start()
 	{
@@ -45,48 +46,53 @@ public class NetworkController : NetworkManager
 			return;
 		}
 
-		GameController.database.root.GetReference("matches").ChildAdded += HandleOnMatchAdded;
+		localPlayer = GameController.localPlayer;
+		localLobby = GameController.lobby;
+		lobbyReference = GameController.database.root.GetReference("lobbies").Child(localLobby.lobbyId);
+		playerCount = localLobby.redPlayers.Count + localLobby.bluePlayers.Count;
 
-		match = new Match(localLobby.redPlayers, localLobby.bluePlayers);
+		await GameController.database.root.GetReference("matches")
+			.Child(localLobby.matchId).GetValueAsync().ContinueWith(task =>
+				{
+					var json = task.Result.GetRawJsonValue();
+					match = JsonConvert.DeserializeObject<Match>(json);
+				});
+
+		GameController.database.root.GetReference("matches")
+			.Child(match.matchId).Child("playersConnected").ValueChanged += HandleOnPlayerConnected;
 
 		if (localPlayer.isHost)
 		{
-			var json = JsonConvert.SerializeObject(match);
-			var dbRef = GameController.database.root.GetReference("matches").Push();
-			match.matchId = dbRef.Key;
-
-			await dbRef.SetRawJsonValueAsync(json).ContinueWith(task =>
-			{
 				matchReference = GameController.database.root
 				.GetReference("matches").Child(match.matchId);
 
-				matchReference.Child("playersConnected").ValueChanged += HandlePlayersConnected;
 				onAllPlayersConnected += HandleOnAllPlayersConnected;
-				ConnectAndWaitForHostStart();
-
-			});
 		}
+		ConnectAndWaitForHostStart();
+	}
+	private void HandleOnPlayerConnected(object sender, ValueChangedEventArgs e)
+	{
+		playersConnected = (int)e.Snapshot.GetValue(false);
+
+		if (playersConnected == playerCount && localPlayer.isHost)
+		{
+			Debug.Log(playersConnected + "/" + match.playerCount + "connected");
+			onAllPlayersConnected();
+		}
+
 	}
 
-	private void HandleOnMatchAdded(object sender, ChildChangedEventArgs e)
+	private void HandleOnHostReady(object sender, ChildChangedEventArgs e)
 	{
 		if(!localPlayer.isHost)
 		{
-			GameController.database.root.GetReference("matches").ChildAdded -= HandleOnMatchAdded;
+			GameController.database.root.GetReference("matches").ChildAdded -= HandleOnHostReady;
 			matchReference = GameController.database.root
 				.GetReference("matches").Child(e.Snapshot.Key);
 
 			match.matchId = e.Snapshot.Key;
 			ConnectAndWaitForHostStart();
 		}
-	}
-
-	private void HandlePlayersConnected(object sender, ValueChangedEventArgs e)
-	{
-		var playersConnected = JsonConvert.DeserializeObject<int>(e.Snapshot.GetRawJsonValue());
-		Debug.Log(playersConnected + "/" + match.playerCount + "connected");
-		if (match.playerCount == playersConnected)
-			onAllPlayersConnected();
 	}
 
 	private void DebugStart()

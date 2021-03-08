@@ -20,6 +20,7 @@ namespace Assets.Scripts.Models
 		public string name;
 		public int playerCount = 0;
 		public int playerMaxCount = 8;
+		public string matchId;
 		
 		public LobbyPlayer hostPlayer;
 		public Dictionary<string, LobbyPlayer> lobbyPlayers;
@@ -176,11 +177,20 @@ namespace Assets.Scripts.Models
 			}
 		}
 
-		public void StartGame(LobbyPlayer player)
+		public async void StartGameAsync(LobbyPlayer player)
 		{
 			if(player.isHost)
 			{
-				lobbyReference.Child("isStarted").SetValueAsync(1);
+
+				Match match = new Match(redPlayers, bluePlayers);
+
+				var matchRef =GameController.database.root.GetReference("matches").Push();
+				match.matchId = matchRef.Key;
+
+				var json = JsonConvert.SerializeObject(match);
+				await matchRef.SetRawJsonValueAsync(json);
+				await lobbyReference.Child("matchId").SetValueAsync(match.matchId);
+				await lobbyReference.Child("isStarted").SetValueAsync(1);
 			}
 		}
 

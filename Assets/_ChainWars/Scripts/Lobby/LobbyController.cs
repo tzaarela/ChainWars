@@ -267,6 +267,6 @@ public class LobbyController : MonoBehaviour
 
     public void StartGame()
 	{
-        lobby.StartGame(localLobbyPlayer);
+        lobby.StartGameAsync(localLobbyPlayer);
 	}
 }
