@@ -29,9 +29,6 @@ public class NetworkController : NetworkManager
 
 		if (debugMode)
 			return;
-
-		
-		
 	}
 
 	
@@ -114,8 +111,14 @@ public class NetworkController : NetworkManager
 		if (!localPlayer.isHost)
 			lobbyReference.Child("isHostStarted").ValueChanged += HandleOnClientHostStarted;
 
-		GameController.database.root.GetReference("matches").Child(match.id)
-			.Child("playersConnected").SetValueAsync(+1);
+
+		var matchRef = GameController.database.root.GetReference("matches");
+
+		matchRef.Child(match.id).Child("playersConnected").GetValueAsync().ContinueWith(task =>
+		{
+			var playerAmount = Convert.ToInt32(task.Result.GetValue(false));
+			matchRef.Child(match.id).Child("playersConnected").SetValueAsync(playerAmount + 1);
+		});
 	}
 
 	private void HandleOnClientHostStarted(object sender, Firebase.Database.ValueChangedEventArgs e)
