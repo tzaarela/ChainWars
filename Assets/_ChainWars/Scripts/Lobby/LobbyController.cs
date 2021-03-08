@@ -246,6 +246,11 @@ public class LobbyController : MonoBehaviour
         });
 	}
 
+	public void OnApplicationQuit()
+	{
+        LeaveLobby();
+	}
+
 	public void JoinRedTeam()
 	{
         lobby.JoinRedTeam(localLobbyPlayer);

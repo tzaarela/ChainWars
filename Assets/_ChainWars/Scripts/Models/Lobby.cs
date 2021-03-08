@@ -37,6 +37,9 @@ namespace Assets.Scripts.Models
 		{
 			this.name = name;
 			lobbyId = Guid.NewGuid().ToString();
+			lobbyPlayers = new Dictionary<string, LobbyPlayer>();
+			redPlayers = new Dictionary<string, LobbyPlayer>();
+			bluePlayers = new Dictionary<string, LobbyPlayer>();
 		}
 
 		private void RefreshLobby(object sender, ValueChangedEventArgs e)
