@@ -131,12 +131,12 @@ namespace Assets.Scripts
             lobby.lobbyId = dbRef.Key;
 
             string jsonValue = JsonConvert.SerializeObject(lobby);
-            await dbRef.SetRawJsonValueAsync(jsonValue).ContinueWithOnMainThread(task =>
-            {
-                Debug.Log("Created new lobby");
+            await dbRef.SetRawJsonValueAsync(jsonValue).ContinueWithOnMainThread(task => { 
+                return lobby;
             });
 
             return lobby;
+
         }
 
         public Task RemoveLobby(string id)

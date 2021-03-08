@@ -91,7 +91,7 @@ public class LobbyController : MonoBehaviour
         localLobbyPlayer.isHost = true;
 
         lobby = await GameController.database.CreateLobbyAsync(createLobbyNameText.text);
-        lobby.AddToLobby(localLobbyPlayer);
+        await lobby.AddPlayerAsync(localLobbyPlayer);
         lobby.onLobbyRoomRefreshed += HandleOnLobbyRoomRefreshed;
         lobby.onGameStart += HandleOnGameStart;
 
@@ -149,7 +149,7 @@ public class LobbyController : MonoBehaviour
         selectedLobbyPanel.SelectPanel();
 	}
 
-	public void JoinLobby()
+	public async void JoinLobbyAsync()
 	{
         var selectedLobbyPanel = lobbyPanels.FirstOrDefault(x => x.isSelected);
 
@@ -169,7 +169,7 @@ public class LobbyController : MonoBehaviour
 
         localLobbyPlayer.isHost = false;
 
-        lobby.AddToLobby(localLobbyPlayer);
+        await lobby.AddPlayerAsync(localLobbyPlayer);
         lobby.onLobbyRoomRefreshed += HandleOnLobbyRoomRefreshed;
         lobby.onHostLeft += HandleOnHostLeft;
 
@@ -265,8 +265,12 @@ public class LobbyController : MonoBehaviour
         lobby.JoinBlueTeam(localLobbyPlayer);
 	}
 
-    public void StartGame()
+    public async void StartGameAsync()
 	{
+        //Move to onlobbyRefresh?
+        //var lobbyJson = JsonConvert.SerializeObject(lobby);
+        //await lobbiesReference.Child(lobby.lobbyId).SetRawJsonValueAsync(lobbyJson);
+
         lobby.StartGameAsync(localLobbyPlayer);
-	}
+    }
 }

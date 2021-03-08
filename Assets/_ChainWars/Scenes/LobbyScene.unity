@@ -1586,7 +1586,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 460701704}
         m_TargetAssemblyTypeName: LobbyController, Assembly-CSharp
-        m_MethodName: StartGame
+        m_MethodName: StartGameAsync
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

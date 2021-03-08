@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 [Serializable]
 public class Match
 {
-	public string matchId;
+	public string id;
 	public int playerCount;
 	public int playersConnected;
 	public Dictionary<string, LobbyPlayer> redPlayers;
@@ -22,7 +22,12 @@ public class Match
 	{
 		this.redPlayers = redPlayers;
 		this.bluePlayers = bluePlayers;
-		playerCount = redPlayers.Count + bluePlayers.Count;
+
+		if (redPlayers != null)
+			playerCount += redPlayers.Count;
+
+		if (bluePlayers != null)
+			playerCount += bluePlayers.Count;
 	}
 
 }

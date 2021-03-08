@@ -59,23 +59,18 @@ namespace Assets.Scripts.Models
 				if (json == null)
 					return;
 
-				GameController.lobby = JsonConvert.DeserializeObject<Lobby>(json);
-
 				onLobbyRoomRefreshed?.Invoke();
 			});
 		}
 
-		public void AddToLobby(LobbyPlayer player)
+		public async Task AddPlayerAsync(LobbyPlayer player)
 		{
-			if(!player.isHost)
-			{
-				lobbyPlayers = new Dictionary<string, LobbyPlayer>();
-				redPlayers = new Dictionary<string, LobbyPlayer>();
-				bluePlayers = new Dictionary<string, LobbyPlayer>();
-			}
+			lobbyPlayers = new Dictionary<string, LobbyPlayer>();
+			redPlayers = new Dictionary<string, LobbyPlayer>();
+			bluePlayers = new Dictionary<string, LobbyPlayer>();
 
 			lobbyReference = GameController.database.root.GetReference("lobbies").Child(lobbyId.ToString());
-			lobbyReference.Child("isStarted").SetValueAsync(0).ContinueWithOnMainThread(task => { 
+			await lobbyReference.Child("isStarted").SetValueAsync(0).ContinueWithOnMainThread(task => { 
 
 				lobbyReference.Child("isStarted").ValueChanged += HandleOnGameStart;
 			});
@@ -92,8 +87,7 @@ namespace Assets.Scripts.Models
 			lobbyPlayers.Add(player.playerId, player);
 
 			var json = JsonConvert.SerializeObject(player);
-			lobbyPlayersRef.SetRawJsonValueAsync(json);
-
+			await lobbyPlayersRef.SetRawJsonValueAsync(json);
 		}
 
 		public void RemoveFromLobby(LobbyPlayer player)
@@ -184,12 +178,16 @@ namespace Assets.Scripts.Models
 
 				Match match = new Match(redPlayers, bluePlayers);
 
-				var matchRef =GameController.database.root.GetReference("matches").Push();
-				match.matchId = matchRef.Key;
+				var matchRef = GameController.database.root.GetReference("matches").Push();
+				match.id = matchRef.Key;
+				matchId = match.id;
 
-				var json = JsonConvert.SerializeObject(match);
-				await matchRef.SetRawJsonValueAsync(json);
-				await lobbyReference.Child("matchId").SetValueAsync(match.matchId);
+				GameController.lobby = this;
+
+				var matchJson = JsonConvert.SerializeObject(match);
+				await matchRef.SetRawJsonValueAsync(matchJson);
+
+				await lobbyReference.Child("matchId").SetValueAsync(match.id);
 				await lobbyReference.Child("isStarted").SetValueAsync(1);
 			}
 		}
