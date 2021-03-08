@@ -4,6 +4,7 @@ using UnityEngine;
 using TMPro;
 using Assets.Scripts;
 using System;
+using Assets._ChainWars.Scripts.Enums;
 
 public class LoginController : MonoBehaviour
 {
@@ -55,7 +56,7 @@ public class LoginController : MonoBehaviour
 
 	private void HandleOnUserSignedIn()
 	{
-		SceneController.Instance.ChangeScene(SceneType.LobbyScene);
+		SceneController.Load(SceneType.LobbyScene);
 	}
 
 	public void ActivateRegisterWindow()
@@ -81,7 +82,7 @@ public class LoginController : MonoBehaviour
 	}
 	private void HandleOnUserRegistered()
 	{
-		SceneController.Instance.ChangeScene(SceneType.LobbyScene);
+		SceneController.Load(SceneType.LobbyScene);
 		statusText.text = "User registered, please sign in!";
 	}
 }

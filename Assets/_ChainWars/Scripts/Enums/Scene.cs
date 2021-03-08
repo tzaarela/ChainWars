@@ -4,13 +4,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Assets.Scripts
+namespace Assets._ChainWars.Scripts.Enums
 {
 	public enum SceneType
 	{
-		//LoadingScene,
 		LoginScene,
 		LobbyScene,
-		GameScene
+		MatchScene,
+		LoadingScene
 	}
 }

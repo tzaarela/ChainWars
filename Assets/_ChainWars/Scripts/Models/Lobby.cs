@@ -1,4 +1,5 @@
-﻿using Firebase.Database;
+﻿using Assets._ChainWars.Scripts.Enums;
+using Firebase.Database;
 using Firebase.Extensions;
 using Newtonsoft.Json;
 using System;
@@ -56,7 +57,8 @@ namespace Assets.Scripts.Models
 				lobbyReference.Child("isStarted").ValueChanged += HandleOnGameStart;
 			});
 
-			lobbyReference.ValueChanged += RefreshLobby;
+			lobbyReference.Child("redPlayers").ValueChanged += RefreshLobby;
+			lobbyReference.Child("bluePlayers").ValueChanged += RefreshLobby;
 			var playerRef = lobbyReference.Child("lobbyPlayers").Push();
 
 			player.playerId = playerRef.Key;
@@ -76,17 +78,18 @@ namespace Assets.Scripts.Models
 			lobbyPlayers.Remove(player.playerId);
 			LeaveBlueTeam(player);
 			LeaveRedTeam(player);
-			lobbyReference.ValueChanged -= RefreshLobby;
+			lobbyReference.Child("redPlayers").ValueChanged -= RefreshLobby;
+			lobbyReference.Child("bluePlayers").ValueChanged -= RefreshLobby;
 			lobbyReference.Child("isStarted").ValueChanged -= HandleOnGameStart;
 			lobbyReference.Child("lobbyPlayers").Child(player.playerId).RemoveValueAsync();
 
 			if (player.isHost)
 			{
-				HostLeft();
+				HostLeftAsync();
 			}
 		}
 
-		private async void HostLeft()
+		private async void HostLeftAsync()
 		{
 			await GameController.database.RemoveLobby(lobbyId);
 			Debug.Log("Host left lobby: " + lobbyId);
@@ -169,10 +172,12 @@ namespace Assets.Scripts.Models
 			if(isStarted == 1)
 			{
 				GameController.gameLobbyId = lobbyId;
-				lobbyReference.ValueChanged -= RefreshLobby;
+
+				lobbyReference.Child("redPlayers").ValueChanged -= RefreshLobby;
+				lobbyReference.Child("bluePlayers").ValueChanged -= RefreshLobby;
 				lobbyReference.Child("isStarted").ValueChanged -= HandleOnGameStart;
 				LobbyController.Instance.UnsubscribeEvents();
-				SceneController.Instance.ChangeScene(SceneType.GameScene);
+				SceneController.Load(SceneType.MatchScene);
 			}
 		}
 	}

@@ -1,3 +1,4 @@
+using Assets._ChainWars.Scripts.Enums;
 using Assets.Scripts;
 using Mirror;
 using System;
@@ -21,7 +22,7 @@ public class MatchController : NetworkBehaviour
 			return;
 
 		if (Input.GetKeyDown(KeyCode.Escape))
-			SceneController.Instance.ChangeScene(SceneType.LobbyScene);
+			SceneController.Load(SceneType.LobbyScene);
 	}
 
 	private void Initialize()

@@ -1,5 +1,12 @@
 {
   "dependencies": {
+    "com.matthewminer.consolation": {
+      "version": "https://github.com/mminer/consolation.git",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "b67de6226f22f63c624cb7857a96dfb689b37ed4"
+    },
     "com.unity.cinemachine": {
       "version": "2.6.3",
       "depth": 0,

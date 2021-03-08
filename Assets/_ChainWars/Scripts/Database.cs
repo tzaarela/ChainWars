@@ -30,7 +30,7 @@ namespace Assets.Scripts
 
         public void InitializeFirebase()
         {
-            FirebaseApp.CheckAndFixDependenciesAsync().ContinueWith(task =>
+            FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task =>
             {
                 var dependencyStatus = task.Result;
                 if (dependencyStatus == Firebase.DependencyStatus.Available)
@@ -40,7 +40,7 @@ namespace Assets.Scripts
                     auth = FirebaseAuth.DefaultInstance;
                     root = FirebaseDatabase.DefaultInstance;
                     Debug.Log("firebase initialized");
-                    Dispatcher.RunOnMainThread(onFirebaseInitialized);
+                    onFirebaseInitialized();
                 }
                 else
                 {
@@ -97,7 +97,7 @@ namespace Assets.Scripts
 
         public void SignInUser(string email, string password)
         {
-            auth.SignInWithEmailAndPasswordAsync(email, password).ContinueWith(task =>
+            auth.SignInWithEmailAndPasswordAsync(email, password).ContinueWithOnMainThread(task =>
             {
                 if (task.IsCanceled)
                 {
@@ -114,7 +114,7 @@ namespace Assets.Scripts
                 Debug.LogFormat("User signed in successfully: {0} ({1})",
                     user.DisplayName, user.UserId);
 
-                Dispatcher.RunOnMainThread(onUserSignedIn);
+                onUserSignedIn?.Invoke();
             });
         }
 
@@ -123,15 +123,17 @@ namespace Assets.Scripts
             auth.SignOut();
 		}
 
-        public Lobby CreateLobby(string name)
+        public async Task<Lobby> CreateLobbyAsync(string name)
         {
+            var dbRef = root.RootReference.Child("lobbies").Push();
+            
             Lobby lobby = new Lobby(name);
+            lobby.lobbyId = dbRef.Key;
+
             string jsonValue = JsonConvert.SerializeObject(lobby);
-            root.RootReference.Child("lobbies").Child(lobby.lobbyId.ToString()).SetRawJsonValueAsync(jsonValue).ContinueWith(task =>
+            await dbRef.SetRawJsonValueAsync(jsonValue).ContinueWithOnMainThread(task =>
             {
                 Debug.Log("Created new lobby");
-
-                onLobbyCreated();
             });
 
             return lobby;
@@ -148,12 +150,10 @@ namespace Assets.Scripts
             });
         }
 
-       
-
-        public List<Lobby> RefreshLobbies()
+        public async Task<List<Lobby>> GetLobbyListAsync()
         {
             var lobbies = new List<Lobby>();
-            root.GetReference("lobbies").GetValueAsync().ContinueWith(task =>
+            await root.GetReference("lobbies").GetValueAsync().ContinueWith(task =>
             {
                 if (task.IsFaulted)
                 {
@@ -161,17 +161,13 @@ namespace Assets.Scripts
                 }
                 else if (task.IsCompleted)
                 {
-                    Debug.Log("refreshing lobby from database");
                     DataSnapshot snapshot = task.Result;
-
 
                     foreach (var lobby in snapshot.Children)
                     {
                         var rawJson = lobby.GetRawJsonValue();
                         lobbies.Add(JsonConvert.DeserializeObject<Lobby>(rawJson));
                     }
-
-                    onLobbiesRefreshed(lobbies);// Do something with snapshot...
                 }
             });
             return lobbies;

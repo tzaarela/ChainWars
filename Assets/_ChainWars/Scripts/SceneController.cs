@@ -1,36 +1,56 @@
-﻿using System;
+﻿using Assets._ChainWars.Scripts.Enums;
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-namespace Assets.Scripts
-{
-	public class SceneController
-	{
-        private static SceneController instance = null;
-        public static SceneController Instance
-        {
-            get
-            {
-                if (instance == null)
-                {
-                    instance = new SceneController();
-                }
-                return instance;
-            }
-        }
-        private SceneController()
-        {
-        }
+public static class SceneController {
 
-        public void ChangeScene(SceneType scene)
-		{
-            Debug.Log("Loading sceneIndex " + (int)scene);
-            SceneManager.LoadScene((int)scene, LoadSceneMode.Single);
+    private class LoadingMonoBehaviour : MonoBehaviour { }
+
+    
+    private static Action onLoaderCallback;
+    private static AsyncOperation loadingAsyncOperation;
+
+    public static void Load(SceneType scene) {
+        // Set the loader callback action to load the target scene
+        onLoaderCallback = () => {
+            Debug.Log("Loading lobby scene");
+            GameObject loadingGameObject = new GameObject("Loading Game Object");
+            loadingGameObject.AddComponent<LoadingMonoBehaviour>().StartCoroutine(LoadSceneAsync(scene));
+        };
+
+        // Load the loading scene
+        SceneManager.LoadScene(SceneType.LoadingScene.ToString());
+    }
+
+    private static IEnumerator LoadSceneAsync(SceneType scene) {
+        yield return null;
+
+        loadingAsyncOperation = SceneManager.LoadSceneAsync(scene.ToString());
+
+        while (!loadingAsyncOperation.isDone) {
+
+            yield return null;
+        }
+    }
+
+    public static float GetLoadingProgress() {
+        if (loadingAsyncOperation != null) {
+            return loadingAsyncOperation.progress;
+        } else {
+            return 1f;
+        }
+    }
+
+    public static void LoaderCallback() {
+        // Triggered after the first Update which lets the screen refresh
+        // Execute the loader callback action which will load the target scene
+        if (onLoaderCallback != null) {
+            Debug.Log("loaderCallback");
+            onLoaderCallback();
+            onLoaderCallback = null;
         }
     }
 }

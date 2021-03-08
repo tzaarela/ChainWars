@@ -7,6 +7,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using Assets.Scripts;
 using Firebase.Extensions;
+using Assets._ChainWars.Scripts.Enums;
 
 public class LobbyController : MonoBehaviour
 {
@@ -34,7 +35,7 @@ public class LobbyController : MonoBehaviour
     private List<GameObject> bluePlayerObjects;
 
     private LobbyPlayer localLobbyPlayer;
-    private Lobby joinedLobby;
+    private Lobby lobby;
     private DatabaseReference lobbiesReference;
 
     public static LobbyController Instance;
@@ -53,8 +54,9 @@ public class LobbyController : MonoBehaviour
 
         var dbUser = GameController.database.user;
 
+        Debug.Log("Setting logged in player text");
         GameController.database.root.GetReference("players")
-            .Child(dbUser.UserId).GetValueAsync().ContinueWithOnMainThread(task =>
+        .Child(dbUser.UserId).GetValueAsync().ContinueWithOnMainThread(task =>
         {
             localLobbyPlayer = JsonConvert.DeserializeObject<LobbyPlayer>(task.Result.GetRawJsonValue());
 
@@ -66,7 +68,7 @@ public class LobbyController : MonoBehaviour
         lobbiesReference.ValueChanged += LobbyController_ValueChanged;
         //GameController.database.dbContext.GetReference("lobbies").ChildRemoved += HandleOnLobbyRemoved;
 
-        RefreshLobbies();
+        RefreshLobbiesAsync();
     }
 
 	public void UnsubscribeEvents()
@@ -76,25 +78,25 @@ public class LobbyController : MonoBehaviour
 
 	private void LobbyController_ValueChanged(object sender, ValueChangedEventArgs e)
 	{
-        RefreshLobbies();
+        RefreshLobbiesAsync();
     }
+
 	private void OnDestroy()
 	{
         lobbiesReference.ValueChanged -= LobbyController_ValueChanged;
     }
 
-	public void CreateLobby()
+	public async void CreateLobbyAsync()
 	{
-        GameController.database.onLobbyCreated += RefreshLobbies;
-        var lobby = GameController.database.CreateLobby(createLobbyNameText.text);
+        lobby = await GameController.database.CreateLobbyAsync(createLobbyNameText.text);
         localLobbyPlayer.isHost = true;
         lobby.AddToLobby(localLobbyPlayer);
-        joinedLobby = lobby;
-        joinedLobby.onLobbyRoomRefreshed += HandleOnLobbyRoomRefreshed;
-        joinedLobby.onGameStart += HandleOnGameStart;
-        lobbyNameText.text = joinedLobby.name;
+        lobby.onLobbyRoomRefreshed += HandleOnLobbyRoomRefreshed;
+        lobby.onGameStart += HandleOnGameStart;
+		lobbyNameText.text = lobby.name;
         lobbyBrowserWindow.SetActive(false);
         lobbyRoomWindow.SetActive(true);
+        RefreshLobbiesAsync();
     }
 
 	private void HandleOnGameStart()
@@ -102,27 +104,19 @@ public class LobbyController : MonoBehaviour
         lobbiesReference.ValueChanged -= LobbyController_ValueChanged;
     }
 
-    public void RefreshLobbies()
+    public async void RefreshLobbiesAsync()
 	{
-        GameController.database.onLobbiesRefreshed += HandleOnLobbiesRefreshed;
-        lobbies = GameController.database.RefreshLobbies();
+        Debug.Log("Refreshing lobbies...");
+        lobbies = await GameController.database.GetLobbyListAsync();
+        CreateLobbyGameObjects();
     }
-
-    private void HandleOnLobbiesRefreshed(List<Lobby> lobbies)
-	{
-        //Dispatcher.RunOnMainThread(() => 
-        //{
-            CreateLobbyGameObjects();
-            GameController.database.onLobbiesRefreshed -= HandleOnLobbiesRefreshed;
-        //});
-	}
 
     private void CreateLobbyGameObjects()
 	{
         foreach (var item in lobbyPanels)
         {
             if (item == null)
-                return;
+                continue;
 
             Destroy(item.gameObject);
         }
@@ -171,41 +165,39 @@ public class LobbyController : MonoBehaviour
 
         localLobbyPlayer.isHost = false;
         lobby.AddToLobby(localLobbyPlayer);
-        joinedLobby = lobby;
+        this.lobby = lobby;
 
-        GameController.database.onLobbiesRefreshed -= HandleOnLobbiesRefreshed;
-
-        joinedLobby.onLobbyRoomRefreshed += HandleOnLobbyRoomRefreshed;
-        joinedLobby.onHostLeft += HandleOnHostLeft;
-        lobbyNameText.text = joinedLobby.name;
+        this.lobby.onLobbyRoomRefreshed += HandleOnLobbyRoomRefreshed;
+        this.lobby.onHostLeft += HandleOnHostLeft;
+		lobbyNameText.text = this.lobby.name;
         lobbyBrowserWindow.SetActive(false);
         lobbyRoomWindow.SetActive(true);
 	}
 
 	private void HandleOnHostLeft()
 	{
-        joinedLobby.onLobbyRoomRefreshed -= HandleOnLobbyRoomRefreshed;
-        joinedLobby.onHostLeft -= HandleOnHostLeft;
-        joinedLobby = null;
+        lobby.onLobbyRoomRefreshed -= HandleOnLobbyRoomRefreshed;
+        lobby.onHostLeft -= HandleOnHostLeft;
+        lobby = null;
         lobbyRoomWindow.SetActive(false);
         lobbyBrowserWindow.SetActive(true);
-        RefreshLobbies();
+        RefreshLobbiesAsync();
     }
 
     public void LeaveLobby()
 	{
-        joinedLobby.RemoveFromLobby(localLobbyPlayer);
-        joinedLobby.onLobbyRoomRefreshed -= HandleOnLobbyRoomRefreshed;
-        joinedLobby = null;
+        lobby.RemoveFromLobby(localLobbyPlayer);
+        lobby.onLobbyRoomRefreshed -= HandleOnLobbyRoomRefreshed;
+        lobby = null;
         lobbyRoomWindow.SetActive(false);
         lobbyBrowserWindow.SetActive(true);
-        RefreshLobbies();
+        RefreshLobbiesAsync();
 	}
 
     public void LogOut()
 	{
         GameController.database.LogOut();
-        SceneController.Instance.ChangeScene(SceneType.LoginScene);
+        SceneController.Load(SceneType.LoginScene);
 	}
 
 	private void HandleOnLobbyRoomRefreshed()
@@ -215,9 +207,7 @@ public class LobbyController : MonoBehaviour
 
 	private void CreateLobbyRoomObjects()
 	{
-        Debug.Log("Creating lobby room objects");
-
-        lobbiesReference.Child(joinedLobby.lobbyId.ToString()).GetValueAsync().ContinueWithOnMainThread(task =>
+        lobbiesReference.Child(lobby.lobbyId.ToString()).GetValueAsync().ContinueWithOnMainThread(task =>
         {
             if (task.IsFaulted)
                 Debug.LogError(task.Exception);
@@ -258,16 +248,16 @@ public class LobbyController : MonoBehaviour
 
 	public void JoinRedTeam()
 	{
-        joinedLobby.JoinRedTeam(localLobbyPlayer);
+        lobby.JoinRedTeam(localLobbyPlayer);
 	}
 
     public void JoinBlueTeam()
 	{
-        joinedLobby.JoinBlueTeam(localLobbyPlayer);
+        lobby.JoinBlueTeam(localLobbyPlayer);
 	}
 
     public void StartGame()
 	{
-        joinedLobby.StartGame(localLobbyPlayer);
+        lobby.StartGame(localLobbyPlayer);
 	}
 }
