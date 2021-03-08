@@ -96,7 +96,8 @@ public class LobbyController : MonoBehaviour
         lobby.onGameStart += HandleOnGameStart;
 
 		lobbyNameText.text = lobby.name;
-        
+
+        lobbiesReference.ValueChanged -= LobbyController_ValueChanged;
         lobbyBrowserWindow.SetActive(false);
         lobbyRoomWindow.SetActive(true);
         //RefreshLobbiesAsync();
