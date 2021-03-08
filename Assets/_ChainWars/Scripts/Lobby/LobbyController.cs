@@ -92,7 +92,7 @@ public class LobbyController : MonoBehaviour
 
         lobby = await GameController.database.CreateLobbyAsync(createLobbyNameText.text);
         await lobby.AddPlayerAsync(localLobbyPlayer);
-        lobby.onLobbyRoomRefreshed += HandleOnLobbyRoomRefreshed;
+        lobby.onLobbyRoomRefreshed += HandleOnLobbyRoomRefreshedAsync;
         lobby.onGameStart += HandleOnGameStart;
 
 		lobbyNameText.text = lobby.name;
@@ -122,6 +122,7 @@ public class LobbyController : MonoBehaviour
             if (item == null)
                 continue;
 
+            item.onLobbySelected -= HandleOnLobbySelected;
             Destroy(item.gameObject);
         }
 
@@ -130,7 +131,7 @@ public class LobbyController : MonoBehaviour
         foreach (var lobby in lobbies)
         {
             if (lobby.isStarted == 1)
-                return;
+                continue;
 
             var lobbyPanel = Instantiate(lobbyPanelPrefab, lobbiesVerticalGroup).GetComponent<LobbyPanel>();
             lobbyPanel.lobbyName.text = lobby.name;
@@ -170,7 +171,7 @@ public class LobbyController : MonoBehaviour
         localLobbyPlayer.isHost = false;
 
         await lobby.AddPlayerAsync(localLobbyPlayer);
-        lobby.onLobbyRoomRefreshed += HandleOnLobbyRoomRefreshed;
+        lobby.onLobbyRoomRefreshed += HandleOnLobbyRoomRefreshedAsync;
         lobby.onHostLeft += HandleOnHostLeft;
 
 		lobbyNameText.text = lobby.name;
@@ -180,7 +181,7 @@ public class LobbyController : MonoBehaviour
 
 	private void HandleOnHostLeft()
 	{
-        lobby.onLobbyRoomRefreshed -= HandleOnLobbyRoomRefreshed;
+        lobby.onLobbyRoomRefreshed -= HandleOnLobbyRoomRefreshedAsync;
         lobby.onHostLeft -= HandleOnHostLeft;
         lobby = null;
         lobbyRoomWindow.SetActive(false);
@@ -191,7 +192,7 @@ public class LobbyController : MonoBehaviour
     public void LeaveLobby()
 	{
         lobby.RemoveFromLobby(localLobbyPlayer);
-        lobby.onLobbyRoomRefreshed -= HandleOnLobbyRoomRefreshed;
+        lobby.onLobbyRoomRefreshed -= HandleOnLobbyRoomRefreshedAsync;
         lobby = null;
         lobbyRoomWindow.SetActive(false);
         lobbyBrowserWindow.SetActive(true);
@@ -204,27 +205,41 @@ public class LobbyController : MonoBehaviour
         SceneController.Load(SceneType.LoginScene);
 	}
 
-	private void HandleOnLobbyRoomRefreshed()
+	private async void HandleOnLobbyRoomRefreshedAsync()
 	{
+        var redTask = await lobbiesReference.Child(lobby.lobbyId).Child("redPlayers").GetValueAsync();
+        var blueTask = await lobbiesReference.Child(lobby.lobbyId).Child("bluePlayers").GetValueAsync();
+
+
+        if (redTask.GetRawJsonValue() != null)
+        {
+            var redPlayers = JsonConvert.DeserializeObject<Dictionary<string, LobbyPlayer>>(redTask.GetRawJsonValue());
+            lobby.redPlayers = redPlayers;
+        }
+        else
+            lobby.redPlayers.Clear();
+
+        if (blueTask.GetRawJsonValue() != null)
+        {
+            var bluePlayers = JsonConvert.DeserializeObject<Dictionary<string, LobbyPlayer>>(blueTask.GetRawJsonValue());
+            lobby.bluePlayers = bluePlayers;
+        }
+        else
+            lobby.bluePlayers.Clear();
+
+
         CreateLobbyRoomObjects();
 	}
 
 	private void CreateLobbyRoomObjects()
 	{
-        lobbiesReference.Child(lobby.lobbyId.ToString()).GetValueAsync().ContinueWithOnMainThread(task =>
-        {
-            if (task.IsFaulted)
-                Debug.LogError(task.Exception);
-
-            var json = task.Result.GetRawJsonValue();
-            var lobby = JsonConvert.DeserializeObject<Lobby>(json);
-           
+        
             bluePlayerObjects.ForEach(x => Destroy(x));
             bluePlayerObjects.Clear();
             redPlayerObjects.ForEach(x => Destroy(x));
             redPlayerObjects.Clear();
 
-            if(lobby.bluePlayers != null)
+            if(lobby.bluePlayers.Count > 0)
 			{
                 foreach (LobbyPlayer player in lobby.bluePlayers.Values)
 			    {
@@ -236,7 +251,7 @@ public class LobbyController : MonoBehaviour
 			    }
 			}
 
-            if(lobby.redPlayers != null)
+            if(lobby.redPlayers.Count > 0)
 			{
                 foreach (LobbyPlayer player in lobby.redPlayers.Values)
                 {
@@ -247,7 +262,6 @@ public class LobbyController : MonoBehaviour
                     redPlayerObjects.Add(playerPanelObject.gameObject);
                 }
 			}
-        });
 	}
 
 	public void OnApplicationQuit()

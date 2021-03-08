@@ -34,13 +34,14 @@ namespace Assets.Scripts.Models
 
 		private DatabaseReference lobbyReference;
 
-		public Lobby(string name)
+		public Lobby(string name, string id)
 		{
 			this.name = name;
-			lobbyId = Guid.NewGuid().ToString();
+			this.lobbyId = id;
 			lobbyPlayers = new Dictionary<string, LobbyPlayer>();
 			redPlayers = new Dictionary<string, LobbyPlayer>();
 			bluePlayers = new Dictionary<string, LobbyPlayer>();
+
 		}
 
 		private async void RefreshLobbyAsync(object sender, ValueChangedEventArgs e)
@@ -59,6 +60,7 @@ namespace Assets.Scripts.Models
 				if (json == null)
 					return;
 
+				
 				onLobbyRoomRefreshed?.Invoke();
 			});
 		}
@@ -69,7 +71,9 @@ namespace Assets.Scripts.Models
 			redPlayers = new Dictionary<string, LobbyPlayer>();
 			bluePlayers = new Dictionary<string, LobbyPlayer>();
 
-			lobbyReference = GameController.database.root.GetReference("lobbies").Child(lobbyId.ToString());
+			lobbyReference = GameController.database.root.GetReference("lobbies").Child(lobbyId);
+
+
 			await lobbyReference.Child("isStarted").SetValueAsync(0).ContinueWithOnMainThread(task => { 
 
 				lobbyReference.Child("isStarted").ValueChanged += HandleOnGameStart;
@@ -182,6 +186,7 @@ namespace Assets.Scripts.Models
 				match.id = matchRef.Key;
 				matchId = match.id;
 
+				GameController.gameLobbyId = lobbyId;
 				GameController.lobby = this;
 
 				var matchJson = JsonConvert.SerializeObject(match);
@@ -202,6 +207,7 @@ namespace Assets.Scripts.Models
 			if(isStarted == 1)
 			{
 				GameController.gameLobbyId = lobbyId;
+				GameController.lobby = this;
 
 				lobbyReference.Child("redPlayers").ValueChanged -= RefreshLobbyAsync;
 				lobbyReference.Child("bluePlayers").ValueChanged -= RefreshLobbyAsync;

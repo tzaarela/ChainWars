@@ -127,8 +127,7 @@ namespace Assets.Scripts
         {
             var dbRef = root.RootReference.Child("lobbies").Push();
             
-            Lobby lobby = new Lobby(name);
-            lobby.lobbyId = dbRef.Key;
+            Lobby lobby = new Lobby(name, dbRef.Key);
 
             string jsonValue = JsonConvert.SerializeObject(lobby);
             await dbRef.SetRawJsonValueAsync(jsonValue).ContinueWithOnMainThread(task => { 
@@ -153,7 +152,7 @@ namespace Assets.Scripts
         public async Task<List<Lobby>> GetLobbyListAsync()
         {
             var lobbies = new List<Lobby>();
-            await root.GetReference("lobbies").GetValueAsync().ContinueWith(task =>
+            await root.GetReference("lobbies").GetValueAsync().ContinueWithOnMainThread(task =>
             {
                 if (task.IsFaulted)
                 {
