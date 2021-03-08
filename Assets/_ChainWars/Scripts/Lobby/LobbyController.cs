@@ -88,15 +88,18 @@ public class LobbyController : MonoBehaviour
 
 	public async void CreateLobbyAsync()
 	{
-        lobby = await GameController.database.CreateLobbyAsync(createLobbyNameText.text);
         localLobbyPlayer.isHost = true;
+
+        lobby = await GameController.database.CreateLobbyAsync(createLobbyNameText.text);
         lobby.AddToLobby(localLobbyPlayer);
         lobby.onLobbyRoomRefreshed += HandleOnLobbyRoomRefreshed;
         lobby.onGameStart += HandleOnGameStart;
+
 		lobbyNameText.text = lobby.name;
+        
         lobbyBrowserWindow.SetActive(false);
         lobbyRoomWindow.SetActive(true);
-        RefreshLobbiesAsync();
+        //RefreshLobbiesAsync();
     }
 
 	private void HandleOnGameStart()
@@ -155,7 +158,7 @@ public class LobbyController : MonoBehaviour
             return;
 		}
 
-        var lobby = lobbies.FirstOrDefault(x => x.lobbyId == selectedLobbyPanel.lobbyId);
+        lobby = lobbies.FirstOrDefault(x => x.lobbyId == selectedLobbyPanel.lobbyId);
 
         if (lobby == null)
 		{
@@ -164,12 +167,12 @@ public class LobbyController : MonoBehaviour
 		}
 
         localLobbyPlayer.isHost = false;
-        lobby.AddToLobby(localLobbyPlayer);
-        this.lobby = lobby;
 
-        this.lobby.onLobbyRoomRefreshed += HandleOnLobbyRoomRefreshed;
-        this.lobby.onHostLeft += HandleOnHostLeft;
-		lobbyNameText.text = this.lobby.name;
+        lobby.AddToLobby(localLobbyPlayer);
+        lobby.onLobbyRoomRefreshed += HandleOnLobbyRoomRefreshed;
+        lobby.onHostLeft += HandleOnHostLeft;
+
+		lobbyNameText.text = lobby.name;
         lobbyBrowserWindow.SetActive(false);
         lobbyRoomWindow.SetActive(true);
 	}

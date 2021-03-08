@@ -66,9 +66,12 @@ namespace Assets.Scripts.Models
 
 		public void AddToLobby(LobbyPlayer player)
 		{
-			lobbyPlayers = new Dictionary<string, LobbyPlayer>();
-			redPlayers = new Dictionary<string, LobbyPlayer>();
-			bluePlayers = new Dictionary<string, LobbyPlayer>();
+			if(!player.isHost)
+			{
+				lobbyPlayers = new Dictionary<string, LobbyPlayer>();
+				redPlayers = new Dictionary<string, LobbyPlayer>();
+				bluePlayers = new Dictionary<string, LobbyPlayer>();
+			}
 
 			lobbyReference = GameController.database.root.GetReference("lobbies").Child(lobbyId.ToString());
 			lobbyReference.Child("isStarted").SetValueAsync(0).ContinueWithOnMainThread(task => { 
@@ -78,9 +81,9 @@ namespace Assets.Scripts.Models
 
 			lobbyReference.Child("redPlayers").ValueChanged += RefreshLobbyAsync;
 			lobbyReference.Child("bluePlayers").ValueChanged += RefreshLobbyAsync;
-			var playerRef = lobbyReference.Child("lobbyPlayers").Push();
+			var lobbyPlayersRef = lobbyReference.Child("lobbyPlayers").Push();
 
-			player.playerId = playerRef.Key;
+			player.playerId = lobbyPlayersRef.Key;
 			GameController.localPlayerId = player.playerId;
 			GameController.localPlayer = player;
 			GameController.lobby = this;
@@ -88,7 +91,7 @@ namespace Assets.Scripts.Models
 			lobbyPlayers.Add(player.playerId, player);
 
 			var json = JsonConvert.SerializeObject(player);
-			playerRef.SetRawJsonValueAsync(json);
+			lobbyPlayersRef.SetRawJsonValueAsync(json);
 
 		}
 
