@@ -54,15 +54,12 @@ public class LobbyController : MonoBehaviour
         var dbUser = GameController.database.user;
 
         GameController.database.root.GetReference("players")
-            .Child(dbUser.UserId).GetValueAsync().ContinueWith(task =>
+            .Child(dbUser.UserId).GetValueAsync().ContinueWithOnMainThread(task =>
         {
             localLobbyPlayer = JsonConvert.DeserializeObject<LobbyPlayer>(task.Result.GetRawJsonValue());
 
-            Dispatcher.RunOnMainThread(() => 
-            {
-                if (!debugStart)
+             if (!debugStart)
                 signedInText.text = localLobbyPlayer.username;
-            });
         });
 
         lobbiesReference = GameController.database.root.GetReference("lobbies");
@@ -113,11 +110,11 @@ public class LobbyController : MonoBehaviour
 
     private void HandleOnLobbiesRefreshed(List<Lobby> lobbies)
 	{
-        Dispatcher.RunOnMainThread(() => 
-        {
+        //Dispatcher.RunOnMainThread(() => 
+        //{
             CreateLobbyGameObjects();
             GameController.database.onLobbiesRefreshed -= HandleOnLobbiesRefreshed;
-        });
+        //});
 	}
 
     private void CreateLobbyGameObjects()
