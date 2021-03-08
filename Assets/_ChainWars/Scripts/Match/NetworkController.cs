@@ -62,7 +62,7 @@ public class NetworkController : NetworkManager
 
 				matchReference.Child("playersConnected").ValueChanged += HandlePlayersConnected;
 				onAllPlayersConnected += HandleOnAllPlayersConnected;
-				Connect();
+				ConnectAndWaitForHostStart();
 
 			});
 		}
@@ -76,7 +76,7 @@ public class NetworkController : NetworkManager
 				.GetReference("matches").Child(e.Snapshot.Key);
 
 			match.matchId = e.Snapshot.Key;
-			Connect();
+			ConnectAndWaitForHostStart();
 		}
 	}
 
@@ -91,11 +91,6 @@ public class NetworkController : NetworkManager
 	private void DebugStart()
 	{
 		Debug.Log("Debug Start!");
-	}
-
-	private void Connect()
-	{
-		ConnectAndWaitForHostStart();
 	}
 
 	private void HandleOnAllPlayersConnected()
