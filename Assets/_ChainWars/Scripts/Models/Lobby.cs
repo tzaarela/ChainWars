@@ -47,7 +47,19 @@ namespace Assets.Scripts.Models
 			Debug.Log("Refreshing lobby...");
 			await lobbyReference.GetValueAsync().ContinueWithOnMainThread(task =>
 			{
-				GameController.lobby = JsonConvert.DeserializeObject<Lobby>(task.Result.GetRawJsonValue());
+				if (task.IsFaulted)
+					Debug.LogError(task.Exception);
+
+				if (task.IsCanceled)
+					Debug.LogError("Task was canceled!");
+
+				var json = task.Result.GetRawJsonValue();
+
+				if (json == null)
+					return;
+
+				GameController.lobby = JsonConvert.DeserializeObject<Lobby>(json);
+
 				onLobbyRoomRefreshed?.Invoke();
 			});
 		}
