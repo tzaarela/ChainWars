@@ -20,7 +20,7 @@ namespace Assets.Scripts.Models
 		public string name;
 		public int playerCount = 0;
 		public int playerMaxCount = 8;
-		public string matchId;
+		public string matchId = "default";
 		
 		public LobbyPlayer hostPlayer;
 		public Dictionary<string, LobbyPlayer> lobbyPlayers;
@@ -207,8 +207,10 @@ namespace Assets.Scripts.Models
 			if(isStarted == 1)
 			{
 
-				var task = await lobbyReference.Child("matchId").GetValueAsync();
-				matchId = task.GetValue(false).ToString();
+				await lobbyReference.Child("matchId").GetValueAsync().ContinueWith(task => 
+				{
+					matchId = JsonConvert.DeserializeObject<string>(task.Result.GetRawJsonValue());
+				});
 
 				GameController.gameLobbyId = lobbyId;
 				GameController.lobby = this;
