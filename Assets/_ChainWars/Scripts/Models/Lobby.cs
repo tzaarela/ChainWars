@@ -14,34 +14,32 @@ namespace Assets.Scripts.Models
 	[Serializable]
 	public class Lobby
 	{
-		public string lobbyId;
 		public int isStarted;
 		public int isHostStarted;
-		public string name;
 		public int playerCount = 0;
 		public int playerMaxCount = 8;
+		public string name;
+		public string lobbyId;
 		public string matchId = "default";
 		
 		public LobbyPlayer hostPlayer;
 		public Dictionary<string, LobbyPlayer> lobbyPlayers;
 		public Dictionary<string, LobbyPlayer> redPlayers;
 		public Dictionary<string, LobbyPlayer> bluePlayers;
-
 		public Action onLobbyRoomRefreshed;
 		public Action onGameStart;
 		public Action onHostLeft;
 
-
 		private DatabaseReference lobbyReference;
+		private LobbyPlayer localPlayer;
 
 		public Lobby(string name, string id)
 		{
 			this.name = name;
-			this.lobbyId = id;
+			lobbyId = id;
 			lobbyPlayers = new Dictionary<string, LobbyPlayer>();
 			redPlayers = new Dictionary<string, LobbyPlayer>();
 			bluePlayers = new Dictionary<string, LobbyPlayer>();
-
 		}
 
 		private async void RefreshLobbyAsync(object sender, ValueChangedEventArgs e)
@@ -59,7 +57,6 @@ namespace Assets.Scripts.Models
 
 				if (json == null)
 					return;
-
 				
 				onLobbyRoomRefreshed?.Invoke();
 			});
@@ -73,22 +70,27 @@ namespace Assets.Scripts.Models
 
 			lobbyReference = GameController.database.root.GetReference("lobbies").Child(lobbyId);
 
-
-			await lobbyReference.Child("isStarted").SetValueAsync(0).ContinueWithOnMainThread(task => { 
-
+			await lobbyReference.Child("isStarted").SetValueAsync(0).ContinueWithOnMainThread(task => 
+			{ 
 				lobbyReference.Child("isStarted").ValueChanged += HandleOnGameStartAsync;
 			});
 
 			lobbyReference.Child("redPlayers").ValueChanged += RefreshLobbyAsync;
 			lobbyReference.Child("bluePlayers").ValueChanged += RefreshLobbyAsync;
-			var lobbyPlayersRef = lobbyReference.Child("lobbyPlayers").Push();
 
+			var lobbyPlayersRef = lobbyReference.Child("lobbyPlayers").Push();
 			player.playerId = lobbyPlayersRef.Key;
+
 			GameController.localPlayerId = player.playerId;
 			GameController.localPlayer = player;
 			GameController.lobby = this;
 
 			lobbyPlayers.Add(player.playerId, player);
+
+			if (player.isHost)
+				hostPlayer = player;
+
+			localPlayer = player;
 
 			var json = JsonConvert.SerializeObject(player);
 			await lobbyPlayersRef.SetRawJsonValueAsync(json);
@@ -97,8 +99,10 @@ namespace Assets.Scripts.Models
 		public void RemoveFromLobby(LobbyPlayer player)
 		{
 			lobbyPlayers.Remove(player.playerId);
+
 			LeaveBlueTeam(player);
 			LeaveRedTeam(player);
+
 			lobbyReference.Child("redPlayers").ValueChanged -= RefreshLobbyAsync;
 			lobbyReference.Child("bluePlayers").ValueChanged -= RefreshLobbyAsync;
 			lobbyReference.Child("isStarted").ValueChanged -= HandleOnGameStartAsync;
@@ -179,7 +183,6 @@ namespace Assets.Scripts.Models
 		{
 			if(player.isHost)
 			{
-
 				Match match = new Match(redPlayers, bluePlayers);
 
 				var matchRef = GameController.database.root.GetReference("matches").Push();
@@ -206,18 +209,19 @@ namespace Assets.Scripts.Models
 
 			if(isStarted == 1)
 			{
-
 				await lobbyReference.Child("matchId").GetValueAsync().ContinueWith(task => 
 				{
 					matchId = JsonConvert.DeserializeObject<string>(task.Result.GetRawJsonValue());
 				});
 
 				GameController.gameLobbyId = lobbyId;
+				GameController.localPlayer = localPlayer;
 				GameController.lobby = this;
 
 				lobbyReference.Child("redPlayers").ValueChanged -= RefreshLobbyAsync;
 				lobbyReference.Child("bluePlayers").ValueChanged -= RefreshLobbyAsync;
 				lobbyReference.Child("isStarted").ValueChanged -= HandleOnGameStartAsync;
+
 				LobbyController.Instance.UnsubscribeEvents();
 				SceneController.Load(SceneType.MatchScene);
 			}

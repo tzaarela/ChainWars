@@ -13,6 +13,8 @@ public class MatchController : NetworkBehaviour
 		if (!isLocalPlayer)
 			return;
 
+		//NetworkController.onMatchInitializ
+
 		Initialize();
 	}
 
@@ -24,6 +26,7 @@ public class MatchController : NetworkBehaviour
 		if (Input.GetKeyDown(KeyCode.Escape))
 			SceneController.Load(SceneType.LobbyScene);
 	}
+
 
 	private void Initialize()
 	{

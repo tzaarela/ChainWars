@@ -13,15 +13,16 @@ public class NetworkController : NetworkManager
 {
 	[SerializeField] bool debugMode;
 
-	private bool allClientsConnected;
 	private int playerCount;
 	private int playersConnected;
+	private int clientsConnected;
 	private LobbyPlayer localPlayer;
 	private Lobby localLobby;
 	private Action onAllPlayersConnected;
 	private Match match;
 	private DatabaseReference lobbyReference;
 	private DatabaseReference matchReference;
+	private List<NetworkConnection> clients;
 
 	public override void Awake()
 	{
@@ -30,8 +31,6 @@ public class NetworkController : NetworkManager
 		if (debugMode)
 			return;
 	}
-
-	
 
 	public override async void Start()
 	{
@@ -43,6 +42,7 @@ public class NetworkController : NetworkManager
 			return;
 		}
 
+		clients = new List<NetworkConnection>();
 		localPlayer = GameController.localPlayer;
 		localLobby = GameController.lobby;
 		lobbyReference = GameController.database.root.GetReference("lobbies").Child(localLobby.lobbyId);
@@ -76,7 +76,6 @@ public class NetworkController : NetworkManager
 			Debug.Log(playersConnected + "/" + match.playerCount + "connected");
 			onAllPlayersConnected();
 		}
-
 	}
 
 	private void HandleOnHostReady(object sender, ChildChangedEventArgs e)
@@ -110,8 +109,7 @@ public class NetworkController : NetworkManager
 
 		if (!localPlayer.isHost)
 			lobbyReference.Child("isHostStarted").ValueChanged += HandleOnClientHostStarted;
-
-
+		
 		var matchRef = GameController.database.root.GetReference("matches");
 
 		matchRef.Child(match.id).Child("playersConnected").GetValueAsync().ContinueWith(task =>
@@ -135,8 +133,6 @@ public class NetworkController : NetworkManager
 		}
 	}
 
-	
-
 	public override void OnStartHost()
 	{
 		if (debugMode)
@@ -154,5 +150,23 @@ public class NetworkController : NetworkManager
 		Debug.Log("Host server started");
 	}
 
-	
+	public override void OnServerAddPlayer(NetworkConnection conn)
+	{
+		base.OnServerAddPlayer(conn);
+	}
+
+	public override void OnServerConnect(NetworkConnection conn)
+	{
+		clients.Add(conn);
+		Debug.Log("client connected");
+		if (clients.Count == playerCount)
+		{
+			Debug.Log("All clients connected! Spawning playerObjects...");
+			foreach (var client in clients)
+			{
+				ClientScene.AddPlayer(client);
+			}
+		}
+	}
+
 }
