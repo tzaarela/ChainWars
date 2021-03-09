@@ -283,10 +283,6 @@ public class LobbyController : MonoBehaviour
 
     public async void StartGameAsync()
 	{
-        //Move to onlobbyRefresh?
-        //var lobbyJson = JsonConvert.SerializeObject(lobby);
-        //await lobbiesReference.Child(lobby.lobbyId).SetRawJsonValueAsync(lobbyJson);
-
-        lobby.StartGameAsync(localLobbyPlayer);
+        await lobby.StartGameAsync(localLobbyPlayer);
     }
 }

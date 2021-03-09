@@ -13,8 +13,6 @@ public class MatchController : NetworkBehaviour
 		if (!isLocalPlayer)
 			return;
 
-		//NetworkController.onMatchInitializ
-
 		Initialize();
 	}
 

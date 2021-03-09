@@ -37,6 +37,7 @@ namespace Assets.Scripts.Models
 		{
 			this.name = name;
 			lobbyId = id;
+
 			lobbyPlayers = new Dictionary<string, LobbyPlayer>();
 			redPlayers = new Dictionary<string, LobbyPlayer>();
 			bluePlayers = new Dictionary<string, LobbyPlayer>();
@@ -179,7 +180,7 @@ namespace Assets.Scripts.Models
 			}
 		}
 
-		public async void StartGameAsync(LobbyPlayer player)
+		public async Task StartGameAsync(LobbyPlayer player)
 		{
 			if(player.isHost)
 			{

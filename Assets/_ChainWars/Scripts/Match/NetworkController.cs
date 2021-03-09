@@ -22,7 +22,7 @@ public class NetworkController : NetworkManager
 	private Match match;
 	private DatabaseReference lobbyReference;
 	private DatabaseReference matchReference;
-	private List<NetworkConnection> clients;
+	private List<NetworkConnection> clientConns;
 
 	public override void Awake()
 	{
@@ -42,16 +42,23 @@ public class NetworkController : NetworkManager
 			return;
 		}
 
-		clients = new List<NetworkConnection>();
+		clientConns = new List<NetworkConnection>();
 		localPlayer = GameController.localPlayer;
 		localLobby = GameController.lobby;
 		lobbyReference = GameController.database.root.GetReference("lobbies").Child(localLobby.lobbyId);
 		playerCount = localLobby.redPlayers.Count + localLobby.bluePlayers.Count;
 
+		if (localLobby.matchId == null)
+			Debug.LogError("No matchId found!");
+
 		await GameController.database.root.GetReference("matches")
 			.Child(localLobby.matchId).GetValueAsync().ContinueWithOnMainThread(task =>
 				{
 					var json = task.Result.GetRawJsonValue();
+
+					if (json == null)
+						Debug.LogError("Match not found");
+
 					match = JsonConvert.DeserializeObject<Match>(json);
 				});
 
@@ -155,18 +162,22 @@ public class NetworkController : NetworkManager
 		base.OnServerAddPlayer(conn);
 	}
 
+	public override void OnClientConnect(NetworkConnection conn)
+	{
+	}
+
 	public override void OnServerConnect(NetworkConnection conn)
 	{
-		clients.Add(conn);
-		Debug.Log("client connected");
-		if (clients.Count == playerCount)
+		clientConns.Add(conn);
+		Debug.Log("client connected to server");
+		if (clientConns.Count == playerCount)
 		{
 			Debug.Log("All clients connected! Spawning playerObjects...");
-			foreach (var client in clients)
+			foreach (var clientConn in clientConns)
 			{
-				ClientScene.AddPlayer(client);
+				ClientScene.Ready(clientConn);
+				ClientScene.AddPlayer(clientConn);
 			}
 		}
 	}
-
 }
