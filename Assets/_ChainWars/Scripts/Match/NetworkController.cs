@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -22,7 +23,7 @@ public class NetworkController : NetworkManager
 	private Match match;
 	private DatabaseReference lobbyReference;
 	private DatabaseReference matchReference;
-	private List<NetworkConnection> clientConns;
+	private List<NetworkConnection> clientConnections;
 
 	public override void Awake()
 	{
@@ -42,7 +43,7 @@ public class NetworkController : NetworkManager
 			return;
 		}
 
-		clientConns = new List<NetworkConnection>();
+		clientConnections = new List<NetworkConnection>();
 		localPlayer = GameController.localPlayer;
 		localLobby = GameController.lobby;
 		lobbyReference = GameController.database.root.GetReference("lobbies").Child(localLobby.lobbyId);
@@ -101,6 +102,7 @@ public class NetworkController : NetworkManager
 	private void DebugStart()
 	{
 		Debug.Log("Debug Start!");
+		singleton.StartHost();
 	}
 
 	private void HandleOnAllPlayersConnected()
@@ -157,26 +159,37 @@ public class NetworkController : NetworkManager
 		Debug.Log("Host server started");
 	}
 
-	public override void OnServerAddPlayer(NetworkConnection conn)
+	public override void OnServerAddPlayer(NetworkConnection connection)
 	{
-		base.OnServerAddPlayer(conn);
-	}
-
-	public override void OnClientConnect(NetworkConnection conn)
-	{
-	}
-
-	public override void OnServerConnect(NetworkConnection conn)
-	{
-		clientConns.Add(conn);
-		Debug.Log("client connected to server");
-		if (clientConns.Count == playerCount)
+		if (debugMode)
 		{
-			Debug.Log("All clients connected! Spawning playerObjects...");
-			foreach (var clientConn in clientConns)
+			base.OnServerAddPlayer(connection);
+			return;
+		}
+
+		clientConnections.Add(connection);
+		if (clientConnections.Count == playerCount)
+		{
+			foreach (var clientConnection in clientConnections)
 			{
-				ClientScene.Ready(clientConn);
-				ClientScene.AddPlayer(clientConn);
+				Transform startPos = GetStartPosition();
+				GameObject player = startPos != null
+				? Instantiate(playerPrefab, startPos.position, startPos.rotation)
+					: Instantiate(playerPrefab);
+
+				NetworkServer.AddPlayerForConnection(clientConnection, player);
+			}
+		}
+	}
+
+	public override void OnClientConnect(NetworkConnection connection)
+	{
+		if (!clientLoadedScene)
+		{
+			if (!ClientScene.ready) ClientScene.Ready(connection);
+			if (autoCreatePlayer)
+			{
+				ClientScene.AddPlayer(connection);
 			}
 		}
 	}
