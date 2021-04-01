@@ -1,4 +1,6 @@
+using Assets._ChainWars.Scripts.Player;
 using Mirror;
+using Pathfinding;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -12,9 +14,6 @@ public class Hook : NetworkBehaviour
 	[SerializeField] private GameObject startPointPrefab;
 
 	[Header("Hook Settings")]
-	[SerializeField] private float travelDistance = 30f;
-	[Range(0, 5)]
-	[SerializeField] private float shootSpeed = 3f;
 	[Range(0,1)]
 	[SerializeField] private float pullSpeed = 0.5f;
 	[Range(3, 100)]
@@ -30,6 +29,12 @@ public class Hook : NetworkBehaviour
 	[SyncVar] private bool isPulling = false;
 	[SyncVar] private bool startPointHit = false;
 	[SyncVar] private bool isGrabbing = false;
+	[SyncVar] private Player playerData;
+	
+	private void Awake()
+	{
+		playerData = GetComponent<PlayerController>().playerData;
+	}
 
 	private void FixedUpdate()
 	{
@@ -50,7 +55,7 @@ public class Hook : NetworkBehaviour
 		if (isExpanding)
 		{
 			RpcMoveHookTip();
-			if ((startPoint.transform.position - hookTip.transform.position).magnitude > travelDistance)
+			if ((startPoint.transform.position - hookTip.transform.position).magnitude > playerData.HookLength)
 			{
 				PullChain(null);
 			}
@@ -101,7 +106,7 @@ public class Hook : NetworkBehaviour
 		if (hookTip == null)
 			return;
 
-		hookTip.transform.Translate(direction * shootSpeed, Space.World);
+		hookTip.transform.Translate(direction * playerData.HookSpeed, Space.World);
 	}
 
 	[Command]
@@ -144,8 +149,8 @@ public class Hook : NetworkBehaviour
 	{
 		if (hasAuthority)
 		{
-			//grabbedObjectConnection = grabbedObject.GetComponent<NetworkIdentity>().connectionToClient;
-			//grabbedObject.transform.SetParent(hookTip);
+			var grabbedPlayer = grabbedObject.GetComponent<PlayerController>();
+			grabbedPlayer.TakeDamage(playerData.HookDamage);
 			CmdPullChain(grabbedObject);
 		}
 	}
