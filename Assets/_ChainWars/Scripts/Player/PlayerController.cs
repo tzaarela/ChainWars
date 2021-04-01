@@ -26,7 +26,7 @@ public class PlayerController : NetworkBehaviour
 	private AIPath aiPath;
 	
 	[SyncVar] public Guid playerGuid;
-	[SyncVar] public Player playerData;
+	public Player playerData;
 
 	private Camera mainCamera;
 
@@ -40,6 +40,7 @@ public class PlayerController : NetworkBehaviour
 		hook = GetComponent<Hook>();
 		aiPath = GetComponent<AIPath>();
 		playerData = playerDefaults.Adapt<Player>();
+		
 	} 
 
 	private void Start()
@@ -50,16 +51,16 @@ public class PlayerController : NetworkBehaviour
 			return;
 		}
 
-		aiPath.maxSpeed = playerData.RunSpeed;
 
 		gameObject.layer = LayerMask.NameToLayer("LocalPlayer");
 		virtualCamera.Follow = transform;
 
+		aiPath.maxSpeed = playerData.RunSpeed;
 		moveTarget = new GameObject("moveTarget").transform;
 		GetComponent<AIDestinationSetter>().target = moveTarget.transform;
 
-		UpdateUI();
 		CmdStart();
+		UpdateUI();
 
 	}
 
@@ -100,8 +101,7 @@ public class PlayerController : NetworkBehaviour
 	{
 		var ray = vcamRaycastCamera.ScreenPointToRay(Input.mousePosition);
 
-		RaycastHit raycastHit;
-		if (Physics.Raycast(ray, out raycastHit, 1000f, groundLayer))
+		if (Physics.Raycast(ray, out RaycastHit raycastHit, 1000f, groundLayer))
 		{
 			Debug.DrawLine(vcamRaycastCamera.transform.position, raycastHit.point, Color.red);
 			moveTarget.position = raycastHit.point;
@@ -113,16 +113,22 @@ public class PlayerController : NetworkBehaviour
 		var hook = GetComponent<Hook>();
 		var ray = mainCamera.ScreenPointToRay(Input.mousePosition);
 
-		RaycastHit raycastHit;
-		if (Physics.Raycast(ray, out raycastHit, 1000f, groundLayer))
+		if (Physics.Raycast(ray, out RaycastHit raycastHit, 1000f, groundLayer))
 		{
 			hook.CmdShoot(raycastHit.point + Vector3.up, playerGuid);
 		}
 	}
 
-	public void TakeDamage(float damage)
+	[Command]
+	public void TakeDamageCmd(float damage)
 	{
 		playerData.Health -= damage;
+		TakeDamageRpc(damage);
+	}
+
+	[ClientRpc]
+	private void TakeDamageRpc(float damage)
+	{
 		UIController.Instance.HealthText.text = playerData.Health.ToString();
 		healthbar.fillAmount = playerData.Health * 0.01f;
 	}
@@ -134,6 +140,7 @@ public class PlayerController : NetworkBehaviour
 		healthbar.fillAmount = playerData.Health * 0.01f;
 	}
 
+	
 	private void UpdateUI()
 	{
 		UIController.Instance.HealthText.text = playerData.Health.ToString();

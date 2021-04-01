@@ -16,7 +16,6 @@ public class NetworkController : NetworkManager
 
 	private int playerCount;
 	private int playersConnected;
-	private int clientsConnected;
 	private LobbyPlayer localPlayer;
 	private Lobby localLobby;
 	private Action onAllPlayersConnected;
@@ -24,14 +23,6 @@ public class NetworkController : NetworkManager
 	private DatabaseReference lobbyReference;
 	private DatabaseReference matchReference;
 	private List<NetworkConnection> clientConnections;
-
-	public override void Awake()
-	{
-		base.Awake();
-
-		if (debugMode)
-			return;
-	}
 
 	public override async void Start()
 	{
@@ -73,6 +64,7 @@ public class NetworkController : NetworkManager
 
 				onAllPlayersConnected += HandleOnAllPlayersConnected;
 		}
+
 		ConnectAndWaitForHostStart();
 	}
 	private void HandleOnPlayerConnected(object sender, ValueChangedEventArgs e)
@@ -102,7 +94,6 @@ public class NetworkController : NetworkManager
 	private void DebugStart()
 	{
 		Debug.Log("Debug Start!");
-		singleton.StartHost();
 	}
 
 	private void HandleOnAllPlayersConnected()
@@ -145,7 +136,10 @@ public class NetworkController : NetworkManager
 	public override void OnStartHost()
 	{
 		if (debugMode)
+		{
+			base.OnStartHost();
 			return;
+		}
 
 		Debug.Log("SteamUserId: " + Mirror.FizzySteam.FizzySteamworks.SteamUserID.ToString());
 
@@ -184,6 +178,13 @@ public class NetworkController : NetworkManager
 
 	public override void OnClientConnect(NetworkConnection connection)
 	{
+		if (debugMode)
+		{ 
+			base.OnClientConnect(connection);
+			return;
+		}
+
+
 		if (!clientLoadedScene)
 		{
 			if (!ClientScene.ready) ClientScene.Ready(connection);

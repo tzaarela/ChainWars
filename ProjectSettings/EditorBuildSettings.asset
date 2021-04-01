@@ -5,16 +5,16 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 1
+  - enabled: 0
     path: Assets/_ChainWars/Scenes/LoginScene.unity
     guid: 02523ce11a2cf064391a3d59a99d8151
-  - enabled: 1
+  - enabled: 0
     path: Assets/_ChainWars/Scenes/LobbyScene.unity
     guid: 15d3be3294b9d3d4fb668ef0f6d18ec4
   - enabled: 1
     path: Assets/_ChainWars/Scenes/MatchScene.unity
     guid: d1c3109bdb54ad54c8a2b2838528e640
-  - enabled: 1
+  - enabled: 0
     path: Assets/_ChainWars/Scenes/LoadingScene.unity
     guid: 8588aaab6781dc246b0350b3d77dc6d2
   m_configObjects: {}

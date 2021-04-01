@@ -29,10 +29,14 @@ public class Hook : NetworkBehaviour
 	[SyncVar] private bool isPulling = false;
 	[SyncVar] private bool startPointHit = false;
 	[SyncVar] private bool isGrabbing = false;
-	[SyncVar] private Player playerData;
+
+	private Player playerData;
 	
-	private void Awake()
+	private void Start()
 	{
+		//if (!hasAuthority)
+		//	return;
+
 		playerData = GetComponent<PlayerController>().playerData;
 	}
 
@@ -150,7 +154,13 @@ public class Hook : NetworkBehaviour
 		if (hasAuthority)
 		{
 			var grabbedPlayer = grabbedObject.GetComponent<PlayerController>();
-			grabbedPlayer.TakeDamage(playerData.HookDamage);
+			if (grabbedPlayer == null)
+			{
+				Debug.LogError("grabbed object does not have a playerController");
+				return;
+			}
+
+			grabbedPlayer.TakeDamageCmd(playerData.HookDamage);
 			CmdPullChain(grabbedObject);
 		}
 	}
